@@ -1,20 +1,12 @@
 package precondition
 import com.microsoft.z3._
-import com.microsoft.z3.Status
-import org.scalatest.exceptions.TestFailedException
-import com.doofin.stdScala._
-import com.microsoft.z3.BoolExpr
-import com.microsoft.z3.Log
-import com.microsoft.z3.Status
-import org.scalatest.exceptions.TestFailedException
+
 import scala.collection.JavaConverters._
 
-import scala.collection.mutable
+object z3CheckApi {
 
-object z3java {
-
-  /**
-    * https://smtlib.cs.uiowa.edu/examples.shtml*/
+  /** https://smtlib.cs.uiowa.edu/examples.shtml
+    */
   def checkSmtlibStr(xs: Seq[String]) = {
     val ctx = new Context(Map[String, String]("model" -> "true").asJava)
 
@@ -25,19 +17,18 @@ object z3java {
 //    ctx.mkRealConst("t1")
   }
 
-  /**
-    * https://smtlib.cs.uiowa.edu/examples.shtml*/
+  /** https://smtlib.cs.uiowa.edu/examples.shtml
+    */
   def checkBool(xs: Seq[BoolExpr]) = {
     val ctx = new Context(Map[String, String]("model" -> "true").asJava)
-    import ctx._
 
     xs foreach { s =>
       check(ctx, s)
     }
   }
 
-  /**
-    * https://smtlib.cs.uiowa.edu/examples.shtml*/
+  /** https://smtlib.cs.uiowa.edu/examples.shtml
+    */
   def checkBoolCtx(ctx: Context, xs: Seq[BoolExpr]) = {
     println("checkBoolCtx")
     xs foreach { s =>
@@ -48,7 +39,7 @@ object z3java {
   private def check(ctx: Context, f: BoolExpr) = {
     val s = ctx.mkSolver
     s.add(f)
-
+    // s.getProof()
     val r = s.check() match {
       case Status.UNSATISFIABLE => "UNSATISFIABLE"
       case Status.UNKNOWN       => "UNKNOWN"
