@@ -2,6 +2,9 @@ package precondition
 import com.microsoft.z3._
 
 import scala.collection.JavaConverters._
+import scala.util.Try
+import scala.util.Failure
+import scala.util.Success
 
 object z3CheckApi {
 
@@ -36,19 +39,41 @@ object z3CheckApi {
     }
   }
 
+  def getProofVals(ctx: Context, f: BoolExpr) = {
+    // https://stackoverflow.com/questions/29577754/getting-proof-from-z3py
+    val s = ctx.mkSolver
+    s.add(f)
+    // s.setpa
+    s.getProof()
+  }
+
   private def check(ctx: Context, f: BoolExpr) = {
     val s = ctx.mkSolver
     s.add(f)
     // s.getProof()
-    val r = s.check() match {
-      case Status.UNSATISFIABLE => "UNSATISFIABLE"
-      case Status.UNKNOWN       => "UNKNOWN"
-      case Status.SATISFIABLE   => "SATISFIABLE"
+    // s.
+    val checkRes = s.check() match {
+      case Status.UNSATISFIABLE =>
+        val ur = Try(s.getUnsatCore()) match {
+          case Failure(exception) => "no getUnsatCore"
+          case Success(value)     => "UnsatCore : " + value.toList.toString()
+        }
+        "UNSATISFIABLE : " + ur
+
+      case Status.UNKNOWN     => "UNKNOWN"
+      case Status.SATISFIABLE => "SATISFIABLE"
+      case x                  => "unknown : " + x.toString()
+    }
+
+    val pf = Try(s.getProof()) match {
+      case Failure(exception) => "no proof"
+      case Success(value)     => value.toString()
     }
 
     println("--------smt-lib2 start -----------")
     println(s.toString)
-    println("smt result:", r)
+    println("smt result:", checkRes)
+    println("proof : ", pf)
     println("--------smt-lib2 end-----------")
 
 //    println(s"$r : for formula  ${f} ")

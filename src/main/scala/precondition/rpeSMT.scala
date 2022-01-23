@@ -26,6 +26,9 @@ import com.doofin.stdScala._
 import com.microsoft.z3
 import precondition.InfRealTuple.{TupNum, tupTp_InfReal}
 
+/*
+dim w = R instead of R^n
+ */
 object rpeSMT {
   import z3Utils._
   private lazy val ctx = newZ3ctx()
@@ -43,6 +46,13 @@ object rpeSMT {
       extends StmtSmt
 
   type Rd = RealExpr // set Rd=R for now
+
+  def test = {
+    import InfRealTuple._
+    // rpeSMT()
+    z3CheckApi.checkBoolCtx(ctx, Seq(genSMTterms()))
+  }
+
   def rpeF[a <: Sort](stmt: StmtSmt, E: Expr[a]): Expr[a] = stmt match {
     case SkipSmt     => E
     case Assig(x, e) => E.substitute(x, e)
@@ -60,15 +70,27 @@ object rpeSMT {
       }
     case WhileSmt(annotation, xs) => rpeF(xs, E)
   }
-//  val sortS = ctx.mkUninterpretedSort("s")
-//  val s1: Expr[UninterpretedSort] = ctx.mkConst("s1", sortS)
-//  val s1: IntExpr = ctx.mkIntConst("s1")
+
+  def I_gen(t: List[IntExpr], w: List[RealExpr]) = {
+    import implicits_tup.tup2inj
+    import InfRealTuple._
+
+    val `2L/n*SumAj` = mkReal(1)
+
+    TupNum(iverB(t(0) !== t(1)) -- false) * infty_+ + (TupNum(
+      iverB(t(0) === t(1)) -- false
+    ) *
+      (TupNum(w(0) - w(1) -- false).normW() + TupNum(`2L/n*SumAj` -- false)))
+
+  }
 
   /** l:int,tupReal->tupReal z:int ~= type of samples w:real simplifed from R^d
     * tuple num or normal num?
     */
   def deltaL_B_Lipschitz(B: Long) = {
-    // import InfRealTuple._
+    //  val sortS = ctx.mkUninterpretedSort("s")
+//  val s1: Expr[UninterpretedSort] = ctx.mkConst("s1", sortS)
+
     val typesOfParam: Array[Sort] =
       Array(mkIntSort(), mkRealSort())
     val l = mkFuncDecl("l_Lip", typesOfParam, mkRealSort())
@@ -103,13 +125,14 @@ object rpeSMT {
     ((2 * L / n) * a_j.reduce(_ + _)).toInt
   }
 
-  def rpeSMT() = {
+  def genSMTterms() = {
     import InfRealTuple._
 
-    println("rpeSMT newvar start")
-    val (l_lip, qtfL) = deltaL_B_Lipschitz(1)
+    val (l_lip: z3.FuncDecl[RealSort], qtfL) = deltaL_B_Lipschitz(1)
+    // f is not used
     val (f_bij, qtfF) = f_bijection()
 
+    // example set
     val s_distrib: Set[Expr[IntSort]] =
       (2 to 6).map(x => mkIntConst(s"s$x")).toSet
 
@@ -124,65 +147,41 @@ object rpeSMT {
     val w1 :: w2 :: g1 :: g2 :: Nil =
       "w1::w2::g1::g2".split("::").toList.map(x => mkRealConst(x))
     val t1 :: t2 :: Nil = (1 to 2).map(x => mkIntConst(s"t$x")).toList
-    val s1 :: s2 :: Nil = (1 to 2).map(x => mkIntConst(s"s$x")).toList
+    val s1 :: s2 :: Nil = mkSymList(2, "s", mkIntConst)
 
-    val e1 :: e2 :: Nil = "e1::e2".split("::").toList.map(x => mkBoolConst(x))
-    val `2L/n*SumAj` = mkReal(1)
+    val e1 :: e2 :: Nil = mkSymList(2, "e", mkBoolConst)
 
     // import shapeless._
     // import syntax.std.tuple._
 
-    val whileBd = StmtSmtList(
-      List(
-        AssigRand(s1, s_distrib),
-        Assig(g1, l_lip(s1, w1)),
-        Assig(w1, w1 - g1),
-        Assig(t1, mkAdd(t1, mkInt(1)))
-      )
-    )
-
-    val whileBd_rel = StmtSmtList(
+    val whileBd_relational = StmtSmtList(
       List(whileBd_gen(s1, g1, w1, t1), whileBd_gen(s2, g2, w2, t2)).flatten
     )
 
-    import implicits_tup.tup2inj
-
-    def I_gen(t: List[IntExpr], w: List[RealExpr]) = {
-      TupNum(iverB(t(0) !== t(1)) -- false) * infty_+ + (TupNum(
-        iverB(t(0) === t(1)) -- false
-      ) *
-        (TupNum(w(0) - w(1) -- false).normW() + TupNum(`2L/n*SumAj`, false)))
-
-    }
     val I = I_gen(List(t1, t2), List(w1, w2))
-    val rpe_bd_I = rpeF(whileBd_rel, I.tup) // `I''`
 //    println("I after rpe:")
 //    pp(rpe_bd_I.toString)
 
-    import implicits_tup.finite2tup
+    import implicits_tup._
 
-    val I_lhs: TupNum = TupNum(iverB(e1 && e2) -- false) * TupNum(rpe_bd_I) +
-      TupNum(iverB(e1.neg && e2.neg) -- false) * TupNum(w1 - w2 -- false)
-        .normW() +
-      iverB(e1 !== e2)
+    // by TH.7.should be auto derived from I_gen
+    val I_lhs: TupNum =
+      TupNum(iverB(e1 && e2) -- false) * rpeF(whileBd_relational, I.tup) +
+        TupNum(iverB(e1.neg && e2.neg) -- false) * TupNum(w1 - w2 -- false)
+          .normW() +
+        iverB(e1 !== e2)
 
     val goal = I_lhs <= I
-    val goal_ax = (qtfF && qtfL) ==> goal
+    val goalWithAxiom = (qtfF && qtfL) ==> goal
 
 //    println("I_lhs : ", I_lhs.toString)
-//    println("goal", goal.toString)
-    z3CheckApi.checkBoolCtx(ctx, Seq(goal_ax.neg))
-  }
-
-  def test = {
-    import InfRealTuple._
-    rpeSMT()
+    goalWithAxiom.neg
   }
 
   /** natural transformation between type containers. need two lang,dsl->ast,
     * can also translate into tree
     */
-  def compile2SmtStmt =
+  def compileSyntax2Smt =
     new (DslStoreA ~> Id) {
       val kvs = mutable.Map.empty[Int, String]
       //      tr : current node to insert

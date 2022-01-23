@@ -8,6 +8,19 @@ import scala.collection.JavaConverters._
 
 object z3Utils {
 
+  /** make a list of constants,etc
+    *
+    * @param i
+    *   : num of
+    * @param sym
+    *   : symbol name
+    * @param maker
+    *   : mkInt,etc
+    * @return
+    */
+  def mkSymList[a](i: Int, sym: String, maker: String => a) = {
+    (1 to i).map(x => maker(s"$sym$x")).toList
+  }
   def newZ3ctx1() = new Context(Map[String, String]("model" -> "true").asJava) {
     setPrintMode(Z3_ast_print_mode.Z3_PRINT_SMTLIB2_COMPLIANT)
   }
