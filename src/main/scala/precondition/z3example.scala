@@ -1,17 +1,17 @@
 package precondition
 
 import com.microsoft.z3
-import com.microsoft.z3.{Context, Expr, IntExpr, Sort}
+import com.microsoft.z3.{Context, Expr, IntExpr, IntSort, Sort}
 
 object z3example {
-  import z3Utils._
+
   def quantifierExample1(ctx: Context): Unit = {
     System.out.println("QuantifierExample")
     //    Log.append("QuantifierExample")
     val types = new Array[Sort](3)
-    val xs    = new Array[IntExpr](3)
+    val xs = new Array[IntExpr](3)
     val names = new Array[z3.Symbol](3)
-    val vars  = new Array[IntExpr](3)
+    val vars = new Array[IntExpr](3)
     for (j <- 0 until 3) {
       types(j) = ctx.getIntSort
       names(j) = ctx.mkSymbol("x_" + Integer.toString(j))
@@ -23,7 +23,10 @@ object z3example {
     }
     val body_vars = ctx.mkAnd(
       ctx.mkEq(ctx.mkAdd(vars(0), ctx.mkInt(1)), ctx.mkInt(2)),
-      ctx.mkEq(ctx.mkAdd(vars(1), ctx.mkInt(2)), ctx.mkAdd(vars(2), ctx.mkInt(3)))
+      ctx.mkEq(
+        ctx.mkAdd(vars(1), ctx.mkInt(2)),
+        ctx.mkAdd(vars(2), ctx.mkInt(3))
+      )
     )
     val body_const = ctx.mkAnd(
       ctx.mkEq(ctx.mkAdd(xs(0), ctx.mkInt(1)), ctx.mkInt(2)),
@@ -41,8 +44,8 @@ object z3example {
     )
     //    System.out.println("Quantifier X: " + x.toString)
     import ctx._
-    val a    = mkIntConst("a")
-    val b    = mkIntConst("b")
+    val a = mkIntConst("a")
+    val b = mkIntConst("b")
 
     val boolExpr = a === b ==> (a === b)
 
@@ -72,4 +75,13 @@ object z3example {
 //    System.out.println("Quantifier Y: " + y.toString)
   }
 
+  import z3Utils._
+  import InfRealTuple.thisCtx._
+  //recursion doesn't work
+  def rectest(j: Expr[IntSort], i: IntExpr): Expr[IntSort] = {
+    // import z3Utils._
+    mkITE(j === i, i, rectest(mkAdd(j, mkInt(1)), i))
+  }
+
+  def sumAsForall()={}
 }

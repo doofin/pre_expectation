@@ -7,7 +7,7 @@ import cats.implicits._
 import cats.free.Free._
 import cats.free.Free
 import cats.{Id, ~>}
-import precondition.rpeSMT.compileSyntax2Smt
+import precondition.compilers.compileSyntax2Smt
 
 //import cuttingedge.progAnalysis.ast.Expr.Var
 //import cuttingedge.progAnalysis.ast._
