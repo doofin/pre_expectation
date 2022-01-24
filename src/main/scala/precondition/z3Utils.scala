@@ -33,7 +33,7 @@ object z3Utils {
 
   import ctx._
 
-  def iverB(x: Expr[BoolSort]): Expr[RealSort] = {
+  def iverB(x: Expr[BoolSort]) = {
     mkITE(x, mkReal(1), mkReal(0))
   }
 
@@ -44,7 +44,9 @@ object z3Utils {
   }
 
   // a <: ArithSort
-  implicit class numOps(x: Expr[RealSort]) {
+  implicit class realOps(
+      x: Expr[RealSort]
+  ) {
     def <=(y: Expr[RealSort]) = mkLe(x, y)
     def <(y: Expr[RealSort]) = mkLt(x, y)
     def >=(y: Expr[RealSort]) = mkGe(x, y)
@@ -53,9 +55,41 @@ object z3Utils {
     def +(y: Expr[RealSort]) = mkAdd(x, y)
     def *(y: Expr[RealSort]) = mkMul(x, y)
 
-    def isPos = x > mkReal(0, 1)
+    def isPos = mkGt(x, mkReal(0, 1))
     def normW() = mkITE(x.isPos, x, mkSub(mkReal(0), x))
   }
+
+  // a <: ArithSort
+  implicit class intOps(
+      x: Expr[IntSort]
+  ) {
+    def +(y: Expr[IntSort]) = mkAdd(x, y)
+    def *(y: Expr[IntSort]) = mkMul(x, y)
+
+  }
+
+  implicit class arr[D <: Sort, R <: Sort](ar: Expr[ArraySort[D, R]]) {
+    def update(var2: Expr[D], var3: Expr[R]) = mkStore[D, R](ar, var2, var3)
+  }
+
+  // a <: ArithSort
+
+  /*
+  implicit class numOps(
+      x: ArithExpr[_ <: ArithSort]
+  ) {
+    def <=(y: Expr[RealSort]) = mkLe(x, y)
+    def <(y: Expr[RealSort]) = mkLt(x, y)
+    def >=(y: Expr[RealSort]) = mkGe(x, y)
+    def >(y: Expr[RealSort]) = mkGt(x, y)
+    def -(y: Expr[RealSort]) = mkSub(x, y)
+    def +(y: Expr[RealSort]) = mkAdd(x, y)
+    def *(y: Expr[RealSort]) = mkMul(x, y)
+
+    def isPos = mkGt(x, mkReal(0, 1))
+    def normW() = mkITE(x.isPos, x, mkSub(mkReal(0), x))
+  }
+   */
 
   implicit class boolOps(x: Expr[BoolSort]) {
     def ||(other: Expr[BoolSort]) = mkOr(x, other)

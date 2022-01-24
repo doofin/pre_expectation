@@ -4,43 +4,30 @@ import com.doofin.stdScala._
 import com.microsoft.z3
 import com.microsoft.z3._
 
+import precondition.syntax.smtAST._
+
 object rpeSMT {
   import z3Utils._
-  private lazy val ctx = newZ3ctx()
+  private lazy val ctx = z3Utils.newZ3ctx()
   import ctx._
 
-  sealed trait StmtSmt
-  case object SkipSmt extends StmtSmt
-  case class Assig[a <: Sort](x: Expr[a], e: Expr[a]) extends StmtSmt
-  case class AssigRand[a <: ArithSort](x: Expr[a], d: Set[Expr[a]])
-      extends StmtSmt
-  case class StmtSmtList(xs: List[StmtSmt]) extends StmtSmt {
-    def append(x: StmtSmt) = StmtSmtList(xs :+ x)
-  }
-  case class WhileSmt(annotation: Option[String], xs: StmtSmtList)
-      extends StmtSmt
-
-  type Rd = RealExpr // set Rd=R for now
+  type Rd = RealExpr // n dim reals,let R^d=R for now
 
   def test = {
-    // rpeSMT()
     z3CheckApi.checkBoolCtx(ctx, Seq(genSMTterms()))
   }
 
-
   /** generate smt terms from program statements and initial smt terms
-   * @param stmt program statements
-   * @param E : loop invariant
-   * @tparam a
-   * @return
-   */
+    * @param stmt program statements
+    * @param E : loop invariant
+    * @return substituted E
+    */
   def rpeF[a <: Sort](stmt: StmtSmt, E: Expr[a]): Expr[a] = stmt match {
     case SkipSmt     => E
     case Assig(x, e) => E.substitute(x, e)
     case AssigRand(x, d) =>
       val sum = d.reduce(mkAdd(_, _))
       val r = mkDiv(sum, mkInt(d.size))
-
       E.substitute(x, r)
 
     case StmtSmtList(xs) =>
@@ -53,13 +40,13 @@ object rpeSMT {
   }
 
   /** generate relational loop invariant I from unrelational loop invariant  I
-   * @param t
-   * @param w
-   * @return
-   */
+    * @param t
+    * @param w
+    * @return
+    */
   def I_gen(t: List[IntExpr], w: List[RealExpr]) = {
     import InfRealTuple._
-    import implicits_tupNum._
+    import ImplicitConv._
 
 //    sum terms in I in p.13
     val `2L/n*SumAj` = mkReal(1)
@@ -93,9 +80,7 @@ object rpeSMT {
     (l, qtf)
   }
 
-
-
-  //  T: Int
+  //todo summation in p13  T: Int
   def `2L/n`(L: Int, n: Int, j: IntExpr, a_j: Seq[Float]) = {
 //    import InfRealTuple.ctx._
     val Aj_type = mkArraySort(mkIntSort(), mkRealSort())
@@ -105,8 +90,29 @@ object rpeSMT {
     ((2 * L / n) * a_j.reduce(_ + _)).toInt
   }
 
+//  sum function in p.13
+  def sum_func() = {
+    val sum_f_params: Array[Sort] = Array(mkIntSort(), mkIntSort(), mkIntSort())
+//    sum from i to n
+    val sum_f = mkFuncDecl("sum", sum_f_params, mkRealSort())
+    val i: Expr[IntSort] = mkIntConst("i")
+    val n: Expr[IntSort] = mkIntConst("n")
+//    array const
+    val ajc = mkConst("aj", mkArraySort(mkIntSort(), mkRealSort()))
+//    use mkStore() to store values in array
+//    the array a_j
+    val aj = (x: Expr[IntSort]) => mkSelect(ajc, x)
+
+//    use implicits for mkInt
+    import ImplicitConv._
+    //  sum i j x(i) = (sum i+1 j x(i+1)) + x(i)
+    val prop = sum_f(i, n, aj(i)) === (sum_f(i + 1, n, aj(i + 1)) + aj(i))
+    val qtf = forall_z3(Array(i, n), prop)
+    (sum_f, qtf)
+  }
+
   /** generate smt terms for while loop body for sgd p.12
-   * @return
+    * @return
     */
   def genSMTterms() = {
     import InfRealTuple._
@@ -142,7 +148,7 @@ object rpeSMT {
 
     val I = I_gen(List(t1, t2), List(w1, w2))
 
-    import implicits_tupNum._
+    import ImplicitConv._
 
     // by TH.7.should be auto derived from I_gen
     val I_lhs: TupNum =
@@ -158,44 +164,7 @@ object rpeSMT {
     goalWithAxiom.neg
   }
 
-
 }
-
-/*
-    // println("t1 : ", t1.getId())
-    // println("t1 : ", mkInt(1).getInt())
-    // import shapeless._
-    // import syntax.std.tuple._
-
-  def f_bijection() = {
-    val params: Array[Sort] = Array(mkIntSort())
-    val f = mkFuncDecl("f_bij", params, mkIntSort())
-    val f_inv = mkFuncDecl("f_bij_inv", params, mkIntSort())
-    val z1: Expr[IntSort] = mkIntConst("z1")
-    val prop = (f(f_inv(z1)) === z1) && (f_inv(f(z1)) === z1)
-
-    val qtf = forall_z3(Array(z1), prop)
-    (f, qtf)
-  }
-
-   * l:int,tupReal->tupReal z:int ~= type of samples w:real simplifed from R^d
-    * tuple num or normal num?
-
-*/
-//  val sortS = ctx.mkUninterpretedSort("s")
-//  val s1: Expr[UninterpretedSort] = ctx.mkConst("s1", sortS)
-
-
-//    val expr = TupNum((ctx.mkReal(1), true)) <= TupNum((ctx.mkReal(1), true))
-//    println(expr.toString)
-//    z3java.checkBoolCtx(ctx, Seq(expr))
-
-//    val P = TupNum(`2L/n*SumAj`, false) + (TupNum(w1, false) - TupNum(w2, false))
-//    val I_f = (x: TupNum) =>
-//      TupNum(iverB(t1 !== t2) -- false) * infty_+ + (TupNum(iverB(t1 === t2) -- false) * x)
-//    val `I'`  = I_f(P)
-//    val `I''` = I_f(P) //I''
-
 //    pp("I before rpe:")
 //    pp(I.tup.toString)
 //    val deltaL = ""

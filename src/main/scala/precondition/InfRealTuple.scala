@@ -11,7 +11,7 @@ object InfRealTuple {
   import z3Utils._
   lazy val thisCtx = newZ3ctx()
   // intsort,bool
-  import implicits_tupNum.tup2inj
+  import ImplicitConv.tup2inj
 
   val infty_+ = TupNum(thisCtx.mkReal(1) -- true)
 

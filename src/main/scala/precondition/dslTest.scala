@@ -1,17 +1,18 @@
 package precondition
 
 import com.doofin.stdScala.pp
-import precondition.dslAST._
+import precondition.syntax.dslAST._
 import cats.data._
 import cats.implicits._
 import cats.free.Free._
 import cats.free.Free
 import cats.{Id, ~>}
-import precondition.compilers.compileSyntax2Smt
+import precondition.compilers.{compileSyntax2Smt, impureCompilerId}
+import precondition.syntax.dslAST
 
 //import cuttingedge.progAnalysis.ast.Expr.Var
 //import cuttingedge.progAnalysis.ast._
-object rpeSyntax {
+object dslTest {
   type vals = Int
 //  type St   = Map[Expr, vals]
 //  type Epi  = (St, St) => Float

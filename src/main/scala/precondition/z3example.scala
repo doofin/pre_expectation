@@ -4,7 +4,7 @@ import com.microsoft.z3
 import com.microsoft.z3.{Context, Expr, IntExpr, IntSort, Sort}
 
 object z3example {
-
+  import z3Utils._
   def quantifierExample1(ctx: Context): Unit = {
     System.out.println("QuantifierExample")
     //    Log.append("QuantifierExample")
@@ -75,7 +75,6 @@ object z3example {
 //    System.out.println("Quantifier Y: " + y.toString)
   }
 
-  import z3Utils._
   import InfRealTuple.thisCtx._
   //recursion doesn't work
   def rectest(j: Expr[IntSort], i: IntExpr): Expr[IntSort] = {
@@ -83,5 +82,42 @@ object z3example {
     mkITE(j === i, i, rectest(mkAdd(j, mkInt(1)), i))
   }
 
-  def sumAsForall()={}
+  def f_bijection() = {
+    val params: Array[Sort] = Array(mkIntSort())
+    val f = mkFuncDecl("f_bij", params, mkIntSort())
+    val f_inv = mkFuncDecl("f_bij_inv", params, mkIntSort())
+    val z1: Expr[IntSort] = mkIntConst("z1")
+    val prop = (f(f_inv(z1)) === z1) && (f_inv(f(z1)) === z1)
+
+    val qtf = forall_z3(Array(z1), prop)
+    (f, qtf)
+  }
+
+  // test ok for  sum_{i=0}^n i == n * (n-1)/2
+//  sum i j x(i) = (sum i+1 j x(i+1)) + x(i)
+  def sumAsForall() = {
+    val ctx = InfRealTuple.thisCtx
+    val params: Array[Sort] = Array(mkIntSort(), mkIntSort(), mkIntSort())
+
+    val sum_f = mkFuncDecl("sum", params, mkIntSort())
+    val i: Expr[IntSort] = mkIntConst("i")
+    val n: Expr[IntSort] = mkIntConst("n")
+    val prop = sum_f(mkInt(0), n, i) === mkDiv(
+      mkMul(n, (mkSub(n, mkInt(1)))),
+      mkInt(
+        2
+      )
+    )
+    val qtf = forall_z3(Array(i, n), prop)
+//    (sum_f, qtf)
+    z3CheckApi.checkBoolCtx(ctx, Seq(qtf))
+  }
+
 }
+
+//  val sortS = ctx.mkUninterpretedSort("s")
+//  val s1: Expr[UninterpretedSort] = ctx.mkConst("s1", sortS)
+//    val expr = TupNum((ctx.mkReal(1), true)) <= TupNum((ctx.mkReal(1), true))
+//    println(expr.toString)
+//    z3java.checkBoolCtx(ctx, Seq(expr))
+

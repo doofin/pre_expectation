@@ -3,7 +3,9 @@ package precondition
 import InfRealTuple._
 import com.microsoft.z3._
 
-object implicits_tupNum {
+import scala.language.implicitConversions
+
+object ImplicitConv {
   implicit def real2tup(num: Expr[RealSort]): InfRealTuple.TupNum =
     TupNum(inj_InfReal(num, thisCtx.mkBool(false)))
 
@@ -13,4 +15,5 @@ object implicits_tupNum {
   implicit def tup2inj(v_tup: (Expr[RealSort], Boolean)): Expr[TupleSort] =
     inj_InfReal(v_tup._1, thisCtx.mkBool(v_tup._2))
 
+  implicit def int2mkint(i: Int): IntNum = thisCtx.mkInt(i)
 }
