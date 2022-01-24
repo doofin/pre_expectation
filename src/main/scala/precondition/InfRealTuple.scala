@@ -11,7 +11,7 @@ object InfRealTuple {
   import z3Utils._
   lazy val thisCtx = newZ3ctx()
   // intsort,bool
-  import implicits_tup.tup2inj
+  import implicits_tupNum.tup2inj
 
   val infty_+ = TupNum(thisCtx.mkReal(1) -- true)
 
@@ -32,12 +32,14 @@ object InfRealTuple {
     import thisCtx._
 //    import z3Utils._
 //    import ctx._
-    val (real1: RealExpr, bool1: Expr[BoolSort]) = (projReal(tup), projBool(tup))
+    val (real1: RealExpr, bool1: Expr[BoolSort]) =
+      (projReal(tup), projBool(tup))
     val isInf: BoolExpr = bool1.isTrueB
 //    private val tup_inf = inj(mkReal(1, 1), mkTrue())
 
     def mkBinaryOp(op: (RealExpr, RealExpr) => Expr[RealSort])(oth: TupNum) = {
-      val (real2: RealExpr, bool2: BoolExpr) = (projReal(oth.tup), projBool(oth.tup))
+      val (real2: RealExpr, bool2: BoolExpr) =
+        (projReal(oth.tup), projBool(oth.tup))
       val notInf = inj_InfReal(op.apply(real1, real2), mkFalse())
       val r = mkITE(isInf, tup, mkITE(oth.isInf, oth.tup, notInf))
       TupNum(r)
@@ -52,7 +54,8 @@ object InfRealTuple {
     /** if oth are pos inf,then true if both are not inf,compare real part
       */
     def <=(oth: TupNum) = {
-      val (real2: RealExpr, bool2: BoolExpr) = (projReal(oth.tup), projBool(oth.tup))
+      val (real2: RealExpr, bool2: BoolExpr) =
+        (projReal(oth.tup), projBool(oth.tup))
 
       val isNotInf = bool1.isFalseB || bool2.isFalseB
       val real1_lt_real2 = real1 <= real2

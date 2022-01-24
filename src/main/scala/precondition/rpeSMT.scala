@@ -72,7 +72,7 @@ object rpeSMT {
   }
 
   def I_gen(t: List[IntExpr], w: List[RealExpr]) = {
-    import implicits_tup.tup2inj
+    import implicits_tupNum._
     import InfRealTuple._
 
     val `2L/n*SumAj` = mkReal(1)
@@ -80,7 +80,7 @@ object rpeSMT {
     TupNum(iverB(t(0) !== t(1)) -- false) * infty_+ + (TupNum(
       iverB(t(0) === t(1)) -- false
     ) *
-      (TupNum(w(0) - w(1) -- false).normW() + TupNum(`2L/n*SumAj` -- false)))
+      (TupNum(w(0) - w(1) -- false).normW() + `2L/n*SumAj`))
 
   }
 
@@ -119,9 +119,20 @@ object rpeSMT {
     val qtf = forall_z3(Array(z1), prop)
     (f, qtf)
   }
-//  T: Int
-  def `2L/n`(L: Int, n: Int, a_j: Seq[Float]) = {
+
+//recursion doesn't work
+  def rectest(j: Expr[IntSort], i: IntExpr): Expr[IntSort] = {
+    // import z3Utils._
+    mkITE(j === i, i, rectest(mkAdd(j, mkInt(1)), i))
+  }
+
+  //  T: Int
+  def `2L/n`(L: Int, n: Int, j: IntExpr, a_j: Seq[Float]) = {
 //    import InfRealTuple.ctx._
+    val Aj_type = mkArraySort(mkIntSort(), mkRealSort())
+    val aj = mkConst("aj", Aj_type)
+    val r = mkSelect(aj, mkInt(1))
+    // can't get indexes t1:IntSort to T:Int or IntSort
     ((2 * L / n) * a_j.reduce(_ + _)).toInt
   }
 
@@ -132,6 +143,7 @@ object rpeSMT {
     // f is not used
     val (f_bij, qtfF) = f_bijection()
 
+    // println(rectest(mkInt(1), mkInt(5)).toString())
     // example set
     val s_distrib: Set[Expr[IntSort]] =
       (2 to 6).map(x => mkIntConst(s"s$x")).toSet
@@ -151,6 +163,8 @@ object rpeSMT {
 
     val e1 :: e2 :: Nil = mkSymList(2, "e", mkBoolConst)
 
+    // println("t1 : ", t1.getId())
+    // println("t1 : ", mkInt(1).getInt())
     // import shapeless._
     // import syntax.std.tuple._
 
@@ -162,7 +176,7 @@ object rpeSMT {
 //    println("I after rpe:")
 //    pp(rpe_bd_I.toString)
 
-    import implicits_tup._
+    import implicits_tupNum._
 
     // by TH.7.should be auto derived from I_gen
     val I_lhs: TupNum =

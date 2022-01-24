@@ -3,7 +3,7 @@ package precondition
 import InfRealTuple._
 import com.microsoft.z3._
 
-object implicits_tup {
+object implicits_tupNum {
   implicit def real2tup(num: Expr[RealSort]): InfRealTuple.TupNum =
     TupNum(inj_InfReal(num, thisCtx.mkBool(false)))
 

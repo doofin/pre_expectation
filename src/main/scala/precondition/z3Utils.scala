@@ -5,6 +5,7 @@ import com.microsoft.z3.enumerations.Z3_ast_print_mode
 import com.microsoft.z3._
 
 import scala.collection.JavaConverters._
+import com.doofin.stdScala._
 
 object z3Utils {
 
