@@ -20,7 +20,9 @@ rpeSMT : the expressions for sgd example in the paper
 
 InfRealTuple : lifting for Number into Number with infinity
 
-dslAST : eDSL syntax and interpreter for simple sgd program
+syntax/dslAST : eDSL syntax and interpreter for simple sgd program
 
 # ide
 vscode + metals plugin
+
+intellij

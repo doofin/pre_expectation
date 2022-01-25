@@ -3,11 +3,11 @@ package precondition
 import com.doofin.stdScala._
 import com.microsoft.z3
 import com.microsoft.z3._
-
 import precondition.syntax.smtAST._
+import precondition.z3api.{z3CheckApi, z3Utils}
 
 object rpeSMT {
-  import z3Utils._
+  import precondition.z3api.z3Utils._ //scala bug? can't move this outside
   private lazy val ctx = z3Utils.newZ3ctx()
   import ctx._
 

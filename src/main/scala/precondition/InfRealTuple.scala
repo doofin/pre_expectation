@@ -8,7 +8,7 @@ import com.microsoft.z3.enumerations.Z3_ast_print_mode
 import scala.language.existentials
 
 object InfRealTuple {
-  import z3Utils._
+  import precondition.z3api.z3Utils._
   lazy val thisCtx = newZ3ctx()
   // intsort,bool
   import ImplicitConv.tup2inj

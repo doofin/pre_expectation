@@ -1,10 +1,14 @@
-package precondition
+package precondition.z3api
 
 import com.microsoft.z3
 import com.microsoft.z3.{Context, Expr, IntExpr, IntSort, Sort}
+import precondition.InfRealTuple
+import precondition.z3api.z3CheckApi
 
 object z3example {
-  import z3Utils._
+
+  import precondition.z3api.z3Utils._
+
   def quantifierExample1(ctx: Context): Unit = {
     System.out.println("QuantifierExample")
     //    Log.append("QuantifierExample")
@@ -71,11 +75,12 @@ object z3example {
       ctx.mkSymbol("Q2"),
       ctx.mkSymbol("skid2")
     )
-//    z3CheckApi.checkBoolCtx(ctx, Seq(y))
-//    System.out.println("Quantifier Y: " + y.toString)
+    //    z3CheckApi.checkBoolCtx(ctx, Seq(y))
+    //    System.out.println("Quantifier Y: " + y.toString)
   }
 
-  import InfRealTuple.thisCtx._
+  import precondition.InfRealTuple.thisCtx._
+
   //recursion doesn't work
   def rectest(j: Expr[IntSort], i: IntExpr): Expr[IntSort] = {
     // import z3Utils._
@@ -94,7 +99,7 @@ object z3example {
   }
 
   // test ok for  sum_{i=0}^n i == n * (n-1)/2
-//  sum i j x(i) = (sum i+1 j x(i+1)) + x(i)
+  //  sum i j x(i) = (sum i+1 j x(i+1)) + x(i)
   def sumAsForall() = {
     val ctx = InfRealTuple.thisCtx
     val params: Array[Sort] = Array(mkIntSort(), mkIntSort(), mkIntSort())
@@ -109,15 +114,8 @@ object z3example {
       )
     )
     val qtf = forall_z3(Array(i, n), prop)
-//    (sum_f, qtf)
+    //    (sum_f, qtf)
     z3CheckApi.checkBoolCtx(ctx, Seq(qtf))
   }
 
 }
-
-//  val sortS = ctx.mkUninterpretedSort("s")
-//  val s1: Expr[UninterpretedSort] = ctx.mkConst("s1", sortS)
-//    val expr = TupNum((ctx.mkReal(1), true)) <= TupNum((ctx.mkReal(1), true))
-//    println(expr.toString)
-//    z3java.checkBoolCtx(ctx, Seq(expr))
-

@@ -1,4 +1,5 @@
-package precondition
+package precondition.z3api
+
 import com.microsoft.z3._
 
 import scala.collection.JavaConverters._
@@ -9,7 +10,7 @@ import scala.util.Success
 object z3CheckApi {
 
   /** https://smtlib.cs.uiowa.edu/examples.shtml
-    */
+   */
   def checkSmtlibStr(xs: Seq[String]) = {
     val ctx = new Context(Map[String, String]("model" -> "true").asJava)
 
@@ -17,11 +18,11 @@ object z3CheckApi {
       check(ctx, parseSmtlibStr(s, ctx))
     }
 
-//    ctx.mkRealConst("t1")
+    //    ctx.mkRealConst("t1")
   }
 
   /** https://smtlib.cs.uiowa.edu/examples.shtml
-    */
+   */
   def checkBool(xs: Seq[BoolExpr]) = {
     val ctx = new Context(Map[String, String]("model" -> "true").asJava)
 
@@ -31,7 +32,7 @@ object z3CheckApi {
   }
 
   /** https://smtlib.cs.uiowa.edu/examples.shtml
-    */
+   */
   def checkBoolCtx(ctx: Context, xs: Seq[BoolExpr]) = {
     println("checkBoolCtx")
     xs foreach { s =>
@@ -56,18 +57,18 @@ object z3CheckApi {
       case Status.UNSATISFIABLE =>
         val ur = Try(s.getUnsatCore()) match {
           case Failure(exception) => "no getUnsatCore"
-          case Success(value)     => "UnsatCore : " + value.toList.toString()
+          case Success(value) => "UnsatCore : " + value.toList.toString()
         }
         "UNSATISFIABLE : " + ur
 
-      case Status.UNKNOWN     => "UNKNOWN"
+      case Status.UNKNOWN => "UNKNOWN"
       case Status.SATISFIABLE => "SATISFIABLE"
-      case x                  => "unknown : " + x.toString()
+      case x => "unknown : " + x.toString()
     }
 
     val pf = Try(s.getProof()) match {
       case Failure(exception) => "no proof"
-      case Success(value)     => value.toString()
+      case Success(value) => value.toString()
     }
 
     println("--------smt-lib2 start -----------")
@@ -76,7 +77,7 @@ object z3CheckApi {
     println("proof : ", pf)
     println("--------smt-lib2 end-----------")
 
-//    println(s"$r : for formula  ${f} ")
+    //    println(s"$r : for formula  ${f} ")
 
   }
 
@@ -85,7 +86,7 @@ object z3CheckApi {
       Seq(
         "(declare-const x Int) (declare-const y Int) (assert (and (> x y) (> x 0)))",
         "(assert (> 0.0001 0.0))"
-//        "(assert (and (= (snd (mk_tuple1 1.0 true)) true) (> (fst (mk_tuple1 1.0 true)) 0.0)))"
+        //        "(assert (and (= (snd (mk_tuple1 1.0 true)) true) (> (fst (mk_tuple1 1.0 true)) 0.0)))"
       )
     )
   }
@@ -98,7 +99,7 @@ object z3CheckApi {
       null,
       null
     )
-//    println(fs.toList map (x => x.toString))
+    //    println(fs.toList map (x => x.toString))
     fs(0)
   }
 }
