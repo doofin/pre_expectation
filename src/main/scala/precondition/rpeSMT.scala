@@ -18,9 +18,12 @@ object rpeSMT {
   }
 
   /** generate smt terms from program statements and initial smt terms
-    * @param stmt program statements
-    * @param E : loop invariant
-    * @return substituted E
+    * @param stmt
+    *   program statements
+    * @param E
+    *   : loop invariant
+    * @return
+    *   substituted E
     */
   def rpeF[a <: Sort](stmt: StmtSmt, E: Expr[a]): Expr[a] = stmt match {
     case SkipSmt     => E
@@ -39,7 +42,7 @@ object rpeSMT {
     case WhileSmt(annotation, xs) => rpeF(xs, E)
   }
 
-  /** generate relational loop invariant I from unrelational loop invariant  I
+  /** generate relational loop invariant I from unrelational loop invariant I
     * @param t
     * @param w
     * @return
@@ -55,7 +58,7 @@ object rpeSMT {
     TupNum(iverB(t(0) !== t(1)) -- false) * infty_+ + (TupNum(
       iverB(t(0) === t(1)) -- false
     ) *
-      (TupNum(w(0) - w(1) -- false).normW() + `2L/n*SumAj`))
+      ((w(0) - w(1)).normW() + `2L/n*SumAj`))
 
   }
 
@@ -90,25 +93,35 @@ object rpeSMT {
     ((2 * L / n) * a_j.reduce(_ + _)).toInt
   }
 
+  def array_aj(B: RealExpr) = {
+
+    val ajc = mkConst("aj", mkArraySort(mkIntSort(), mkRealSort()))
+//    use mkStore() to store values in array.need index from i to n ?
+//    the array a_j
+    val aj = (x: Expr[IntSort]) => mkSelect(ajc, x)
+    val t: Expr[IntSort] = mkIntConst("t")
+    val aj_prop = (t < aj(t)) && (aj(t) < (mkReal(2) / B))
+    // properties for array a_j :  0<=a_t<=2/B,p12
+    val qtf = forall_z3(Array(t), aj_prop)
+    (qtf, aj)
+  }
 //  sum function in p.13
-  def sum_func() = {
+// todo : sum over all indexes of array
+  def sum_func(B: RealExpr) = {
     val sum_f_params: Array[Sort] = Array(mkIntSort(), mkIntSort(), mkIntSort())
-//    sum from i to n
+//    sum from i to n.need to change 3rd param to array?
     val sum_f = mkFuncDecl("sum", sum_f_params, mkRealSort())
     val i: Expr[IntSort] = mkIntConst("i")
     val n: Expr[IntSort] = mkIntConst("n")
-//    array const
-    val ajc = mkConst("aj", mkArraySort(mkIntSort(), mkRealSort()))
-//    use mkStore() to store values in array
-//    the array a_j
-    val aj = (x: Expr[IntSort]) => mkSelect(ajc, x)
+    val (aj_qtf, aj) = array_aj(B)
 
 //    use implicits for mkInt
-    import ImplicitConv._
+    import ImplicitConv.int2mkint
+    //    sum from i to n.need to change 3rd param to array?
     //  sum i j x(i) = (sum i+1 j x(i+1)) + x(i)
     val prop = sum_f(i, n, aj(i)) === (sum_f(i + 1, n, aj(i + 1)) + aj(i))
     val qtf = forall_z3(Array(i, n), prop)
-    (sum_f, qtf)
+    (sum_f, qtf && aj_qtf)
   }
 
   /** generate smt terms for while loop body for sgd p.12
@@ -153,7 +166,7 @@ object rpeSMT {
     // by TH.7.should be auto derived from I_gen
     val I_lhs: TupNum =
       TupNum(iverB(e1 && e2) -- false) * rpeF(whileBd_relational, I.tup) +
-        TupNum(iverB(e1.neg && e2.neg) -- false) * TupNum(w1 - w2 -- false)
+        TupNum(iverB(e1.neg && e2.neg) -- false) * (w1 - w2)
           .normW() +
         iverB(e1 !== e2)
 
