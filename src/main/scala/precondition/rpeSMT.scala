@@ -17,6 +17,7 @@ object rpeSMT {
     z3CheckApi.checkBoolCtx(
       ctx,
       Seq(genSMTterms()),
+      Status.UNSATISFIABLE,
       "goal : unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))"
     )
   }
@@ -52,26 +53,41 @@ object rpeSMT {
     * @return
     */
   def I_gen(t: List[IntExpr], w: List[RealExpr]) = {
-    import InfRealTuple._
-    import ImplicitConv._
 
+    import z3Utils._
+    import ImplicitConv.int2mkint
 //    sum terms in I in p.13
     // val `2L/n*SumAj` = mkReal(1)
-    val B_Lipschitz = mkReal(1)
-    val (a_j, aj_prop) = aj_func(B = B_Lipschitz)
+    val (beta, n, l_L) =
+      (mkRealConst("beta"), mkIntConst("n"), mkRealConst("L"))
 
-    val (sumTerm, sumTerm_prop) = sum_func(B = B_Lipschitz, a_j)
+    val numProp = (beta > 0) && (n > 0) && (l_L >= 0)
+    val (a_j, aj_prop) = aj_func(B = beta)
 
-    val T = mkInt(10)
+    val (sumTerm, sumTerm_prop) = sum_func(B = beta, a_j)
+
+    val T = mkIntConst("T")
 
     // sum for a_j from t to T
-    val `2L/n*SumAj` = sumTerm(t(0), T)
+    // ctx.mkInt2Real()
+
+    val `2L/n*SumAj`: RealExpr =
+      (mkReal(2) * l_L / mkInt2Real(n) * sumTerm(
+        t(0),
+        T
+      )).asInstanceOf[RealExpr]
+
+    // mkDiv(mkReal(2) * l_L, n) * sumTerm(t(0), T)
+
+    import ImplicitConv._
+    import InfRealTuple._
 //    terms I in p.13
-    TupNum(iverB(t(0) !== t(1)) -- false) * infty_+ + (TupNum(
+    val tup = TupNum(iverB(t(0) !== t(1)) -- false) * infty_+ + (TupNum(
       iverB(t(0) === t(1)) -- false
     ) *
       ((w(0) - w(1)).normW() + `2L/n*SumAj`))
 
+    (tup, aj_prop && sumTerm_prop)
   }
 
   /** L-Lipschitz property and Uninterpreted function
@@ -127,8 +143,10 @@ object rpeSMT {
     // val prop = sum_f(i, n, aj(i)) === (sum_f(i + 1, n, aj(i + 1)) + aj(i))
     //trick: encode a_j inside sum
     //  sum i j = (sum i+1 j) + x(i)
-    val prop = sum_f(i, n) === (sum_f(i + 1, n) + aj(i))
-    val qtf = forall_z3(Array(i, n), prop)
+    val prop1 = i <= n ==> (sum_f(i, n) === (sum_f(i + 1, n) + aj(i)))
+    val prop2 = i > n ==> (sum_f(i, n) === 0)
+
+    val qtf = forall_z3(Array(i, n), prop1 && prop2)
     (sum_f, qtf)
   }
 
@@ -166,19 +184,19 @@ object rpeSMT {
       List(whileBd_gen(s1, g1, w1, t1), whileBd_gen(s2, g2, w2, t2)).flatten
     )
 
-    val I = I_gen(List(t1, t2), List(w1, w2))
+    val (i, i_prop) = I_gen(List(t1, t2), List(w1, w2))
 
     import ImplicitConv._
 
     // by TH.7.should be auto derived from I_gen
     val I_lhs: TupNum =
-      TupNum(iverB(e1 && e2) -- false) * rpeF(whileBd_relational, I.tup) +
+      TupNum(iverB(e1 && e2) -- false) * rpeF(whileBd_relational, i.tup) +
         TupNum(iverB(e1.neg && e2.neg) -- false) * (w1 - w2)
           .normW() +
         iverB(e1 !== e2)
 
-    val goal = I_lhs <= I
-    val goalWithAxiom = qtfL ==> goal
+    val goal = I_lhs <= i
+    val goalWithAxiom = qtfL && i_prop ==> goal
 
 //    println("I_lhs : ", I_lhs.toString)
     goalWithAxiom.neg

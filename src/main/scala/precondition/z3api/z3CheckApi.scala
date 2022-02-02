@@ -33,12 +33,20 @@ object z3CheckApi {
 
   /** https://smtlib.cs.uiowa.edu/examples.shtml
     */
-  def checkBoolCtx(ctx: Context, xs: Seq[BoolExpr], goalStr: String = "") = {
+  def checkBoolCtx(
+      ctx: Context,
+      xs: Seq[BoolExpr],
+      goal: Status = Status.SATISFIABLE,
+      goalStr: String = ""
+  ) = {
     println("checkBoolCtx")
     xs foreach { s =>
-      check(ctx, s)
+      val r = check(ctx, s)
+      println(goalStr)
+      val msg = if (goal == r) "goal achieved" else "goal not  achieved"
+      println(msg)
     }
-    println(goalStr)
+
   }
 
   def getProofVals(ctx: Context, f: BoolExpr) = {
@@ -54,7 +62,8 @@ object z3CheckApi {
     s.add(f)
     // s.getProof()
     // s.
-    val checkRes = s.check() match {
+    val statusR = s.check()
+    val checkRes = statusR match {
       case Status.UNSATISFIABLE =>
         val ur = Try(s.getUnsatCore()) match {
           case Failure(exception) => "no getUnsatCore"
@@ -79,7 +88,7 @@ object z3CheckApi {
     println("--------smt-lib2 end-----------")
 
     //    println(s"$r : for formula  ${f} ")
-
+    statusR
   }
 
   def parserExample1(): Unit = {
