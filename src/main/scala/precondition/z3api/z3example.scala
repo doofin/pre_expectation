@@ -118,4 +118,25 @@ object z3example {
     z3CheckApi.checkBoolCtx(ctx, Seq(qtf))
   }
 
+  def array_aj(B: z3.RealExpr) = {
+
+    val ajc = mkConst("aj", mkArraySort(mkIntSort(), mkRealSort()))
+//    use mkStore() to store values in array.need index from i to n ?
+//    the array a_j
+    val aj = (x: Expr[IntSort]) => mkSelect(ajc, x)
+    val t: Expr[IntSort] = mkIntConst("t")
+    val aj_prop = (t < aj(t)) && (aj(t) < (mkReal(2) / B))
+    // properties for array a_j :  0<=a_t<=2/B,p12
+    val qtf = forall_z3(Array(t), aj_prop)
+    (qtf, aj)
+  }
+
+  def `2L/n`(L: Int, n: Int, j: IntExpr, a_j: Seq[Float]) = {
+//    import InfRealTuple.ctx._
+    val Aj_type = mkArraySort(mkIntSort(), mkRealSort())
+    val aj = mkConst("aj", Aj_type)
+    val r = mkSelect(aj, mkInt(1))
+    // can't get indexes t1:IntSort to T:Int or IntSort
+    ((2 * L / n) * a_j.reduce(_ + _)).toInt
+  }
 }

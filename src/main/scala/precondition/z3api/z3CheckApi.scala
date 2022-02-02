@@ -10,7 +10,7 @@ import scala.util.Success
 object z3CheckApi {
 
   /** https://smtlib.cs.uiowa.edu/examples.shtml
-   */
+    */
   def checkSmtlibStr(xs: Seq[String]) = {
     val ctx = new Context(Map[String, String]("model" -> "true").asJava)
 
@@ -22,7 +22,7 @@ object z3CheckApi {
   }
 
   /** https://smtlib.cs.uiowa.edu/examples.shtml
-   */
+    */
   def checkBool(xs: Seq[BoolExpr]) = {
     val ctx = new Context(Map[String, String]("model" -> "true").asJava)
 
@@ -32,12 +32,13 @@ object z3CheckApi {
   }
 
   /** https://smtlib.cs.uiowa.edu/examples.shtml
-   */
-  def checkBoolCtx(ctx: Context, xs: Seq[BoolExpr]) = {
+    */
+  def checkBoolCtx(ctx: Context, xs: Seq[BoolExpr], goalStr: String = "") = {
     println("checkBoolCtx")
     xs foreach { s =>
       check(ctx, s)
     }
+    println(goalStr)
   }
 
   def getProofVals(ctx: Context, f: BoolExpr) = {
@@ -57,18 +58,18 @@ object z3CheckApi {
       case Status.UNSATISFIABLE =>
         val ur = Try(s.getUnsatCore()) match {
           case Failure(exception) => "no getUnsatCore"
-          case Success(value) => "UnsatCore : " + value.toList.toString()
+          case Success(value)     => "UnsatCore : " + value.toList.toString()
         }
         "UNSATISFIABLE : " + ur
 
-      case Status.UNKNOWN => "UNKNOWN"
+      case Status.UNKNOWN     => "UNKNOWN"
       case Status.SATISFIABLE => "SATISFIABLE"
-      case x => "unknown : " + x.toString()
+      case x                  => "unknown : " + x.toString()
     }
 
     val pf = Try(s.getProof()) match {
       case Failure(exception) => "no proof"
-      case Success(value) => value.toString()
+      case Success(value)     => value.toString()
     }
 
     println("--------smt-lib2 start -----------")

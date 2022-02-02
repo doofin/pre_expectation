@@ -14,7 +14,11 @@ object rpeSMT {
   type Rd = RealExpr // n dim reals,let R^d=R for now
 
   def test = {
-    z3CheckApi.checkBoolCtx(ctx, Seq(genSMTterms()))
+    z3CheckApi.checkBoolCtx(
+      ctx,
+      Seq(genSMTterms()),
+      "goal : unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))"
+    )
   }
 
   /** generate smt terms from program statements and initial smt terms
@@ -52,8 +56,16 @@ object rpeSMT {
     import ImplicitConv._
 
 //    sum terms in I in p.13
-    val `2L/n*SumAj` = mkReal(1)
+    // val `2L/n*SumAj` = mkReal(1)
+    val B_Lipschitz = mkReal(1)
+    val (a_j, aj_prop) = aj_func(B = B_Lipschitz)
 
+    val (sumTerm, sumTerm_prop) = sum_func(B = B_Lipschitz, a_j)
+
+    val T = mkInt(10)
+
+    // sum for a_j from t to T
+    val `2L/n*SumAj` = sumTerm(t(0), T)
 //    terms I in p.13
     TupNum(iverB(t(0) !== t(1)) -- false) * infty_+ + (TupNum(
       iverB(t(0) === t(1)) -- false
@@ -83,49 +95,44 @@ object rpeSMT {
     (l, qtf)
   }
 
-  //todo summation in p13  T: Int
-  def `2L/n`(L: Int, n: Int, j: IntExpr, a_j: Seq[Float]) = {
-//    import InfRealTuple.ctx._
-    val Aj_type = mkArraySort(mkIntSort(), mkRealSort())
-    val aj = mkConst("aj", Aj_type)
-    val r = mkSelect(aj, mkInt(1))
-    // can't get indexes t1:IntSort to T:Int or IntSort
-    ((2 * L / n) * a_j.reduce(_ + _)).toInt
-  }
+  // summation in p13  T: Int
+  def aj_func(B: RealExpr) = {
 
-  def array_aj(B: RealExpr) = {
-
-    val ajc = mkConst("aj", mkArraySort(mkIntSort(), mkRealSort()))
-//    use mkStore() to store values in array.need index from i to n ?
-//    the array a_j
-    val aj = (x: Expr[IntSort]) => mkSelect(ajc, x)
+    val aj: FuncDecl[RealSort] = mkFuncDecl(
+      "aj",
+      Array(mkIntSort()): Array[Sort],
+      mkRealSort()
+    )
     val t: Expr[IntSort] = mkIntConst("t")
     val aj_prop = (t < aj(t)) && (aj(t) < (mkReal(2) / B))
     // properties for array a_j :  0<=a_t<=2/B,p12
     val qtf = forall_z3(Array(t), aj_prop)
-    (qtf, aj)
+    (aj, qtf)
   }
+
 //  sum function in p.13
 // todo : sum over all indexes of array
-  def sum_func(B: RealExpr) = {
-    val sum_f_params: Array[Sort] = Array(mkIntSort(), mkIntSort(), mkIntSort())
+// sum_aj : int^2=>real,sum over a_j from i to j
+  def sum_func(B: RealExpr, aj: FuncDecl[RealSort]) = {
+    val sum_f_params: Array[Sort] = Array(mkIntSort(), mkIntSort())
+    // val sum_f_params: Array[Sort] = Array(mkIntSort(), mkIntSort(), mkIntSort())
 //    sum from i to n.need to change 3rd param to array?
     val sum_f = mkFuncDecl("sum", sum_f_params, mkRealSort())
     val i: Expr[IntSort] = mkIntConst("i")
     val n: Expr[IntSort] = mkIntConst("n")
-    val (aj_qtf, aj) = array_aj(B)
 
 //    use implicits for mkInt
     import ImplicitConv.int2mkint
-    //    sum from i to n.need to change 3rd param to array?
     //  sum i j x(i) = (sum i+1 j x(i+1)) + x(i)
-    val prop = sum_f(i, n, aj(i)) === (sum_f(i + 1, n, aj(i + 1)) + aj(i))
+    // val prop = sum_f(i, n, aj(i)) === (sum_f(i + 1, n, aj(i + 1)) + aj(i))
+    //trick: encode a_j inside sum
+    //  sum i j = (sum i+1 j) + x(i)
+    val prop = sum_f(i, n) === (sum_f(i + 1, n) + aj(i))
     val qtf = forall_z3(Array(i, n), prop)
-    (sum_f, qtf && aj_qtf)
+    (sum_f, qtf)
   }
 
-  /** generate smt terms for while loop body for sgd p.12
-    * @return
+  /** generate smt terms for while loop body for sgd example at p.12
     */
   def genSMTterms() = {
     import InfRealTuple._
