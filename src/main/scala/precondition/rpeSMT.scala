@@ -22,6 +22,9 @@ object rpeSMT {
     )
   }
 
+// todo: n dim version of w as uninterp function
+  def w_dim_n() = {}
+
   /** generate smt terms from program statements and initial smt terms
     * @param stmt
     *   program statements
@@ -30,10 +33,12 @@ object rpeSMT {
     * @return
     *   substituted E
     */
+  // todo:make it relational
   def rpeF[a <: Sort](stmt: StmtSmt, E: Expr[a]): Expr[a] = stmt match {
-    case SkipSmt     => E
-    case Assig(x, e) => E.substitute(x, e)
+    case SkipSmt         => E
+    case Assig(x, e)     => E.substitute(x, e)
     case AssigRand(x, d) =>
+      // use the trick from bottom of p.10,which only works if rpe is in left hand side, due to the inequality
       val sum = d.reduce(mkAdd(_, _))
       val r = mkDiv(sum, mkInt(d.size))
       E.substitute(x, r)

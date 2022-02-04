@@ -87,17 +87,6 @@ object z3example {
     mkITE(j === i, i, rectest(mkAdd(j, mkInt(1)), i))
   }
 
-  def f_bijection() = {
-    val params: Array[Sort] = Array(mkIntSort())
-    val f = mkFuncDecl("f_bij", params, mkIntSort())
-    val f_inv = mkFuncDecl("f_bij_inv", params, mkIntSort())
-    val z1: Expr[IntSort] = mkIntConst("z1")
-    val prop = (f(f_inv(z1)) === z1) && (f_inv(f(z1)) === z1)
-
-    val qtf = forall_z3(Array(z1), prop)
-    (f, qtf)
-  }
-
   // test ok for  sum_{i=0}^n i == n * (n-1)/2
   //  sum i j x(i) = (sum i+1 j x(i+1)) + x(i)
   def sumAsForall() = {

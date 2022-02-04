@@ -45,6 +45,7 @@ object z3CheckApi {
       println(goalStr)
       val msg = if (goal == r) "goal achieved" else "goal not  achieved"
       println(msg)
+
     }
 
   }
@@ -71,9 +72,11 @@ object z3CheckApi {
         }
         "UNSATISFIABLE : " + ur
 
-      case Status.UNKNOWN     => "UNKNOWN"
-      case Status.SATISFIABLE => "SATISFIABLE"
-      case x                  => "unknown : " + x.toString()
+      case Status.UNKNOWN => "UNKNOWN"
+      case Status.SATISFIABLE =>
+        println(s.getModel().toString())
+        "SATISFIABLE"
+      case x => "unknown : " + x.toString()
     }
 
     val pf = Try(s.getProof()) match {
