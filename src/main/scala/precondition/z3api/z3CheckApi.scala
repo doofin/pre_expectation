@@ -7,6 +7,8 @@ import scala.util.Try
 import scala.util.Failure
 import scala.util.Success
 
+import com.doofin.stdScala._
+
 object z3CheckApi {
 
   /** https://smtlib.cs.uiowa.edu/examples.shtml
@@ -15,7 +17,7 @@ object z3CheckApi {
     val ctx = new Context(Map[String, String]("model" -> "true").asJava)
 
     xs foreach { s =>
-      check(ctx, parseSmtlibStr(s, ctx))
+      check(ctx, Seq(parseSmtlibStr(s, ctx)))
     }
 
     //    ctx.mkRealConst("t1")
@@ -23,33 +25,48 @@ object z3CheckApi {
 
   /** https://smtlib.cs.uiowa.edu/examples.shtml
     */
-  def checkBool(xs: Seq[BoolExpr]) = {
+  /*   def checkBool(xs: Seq[BoolExpr]) = {
     val ctx = new Context(Map[String, String]("model" -> "true").asJava)
+
+    check(ctx, xs)
 
     xs foreach { s =>
       check(ctx, s)
     }
-  }
+  } */
 
   /** https://smtlib.cs.uiowa.edu/examples.shtml
+    *
+    * if premise is not unsat (premise is sat or unknown) ,it's fine
     */
-  def checkBoolCtx(
+  def checkBoolExpr(
       ctx: Context,
       xs: Seq[BoolExpr],
       goal: Status = Status.SATISFIABLE,
-      goalStr: String = ""
+      goalStr: String = "",
+      printSAT: Boolean = false,
+      premise: Seq[BoolExpr] = Seq()
   ) = {
-    println("checkBoolCtx")
-    xs foreach { s =>
-      val r = check(ctx, s)
-      println(goalStr)
-      val msg = if (goal == r) "goal achieved" else "goal not  achieved"
+    // println("checkBoolCtx")
+    val r = check(ctx, xs, printSAT)
+    println("goal:" + goalStr)
+    val msg = if (goal == r) "goal achieved" else "goal not  achieved"
+    println(msg)
+
+    if (premise.nonEmpty) {
+      println("doing sanity check on premise")
+      val r = check(ctx, xs, printSAT)
+      println("goal: premise is sat or unknown")
+      val msg =
+        if (r != Status.UNSATISFIABLE) " premise is consistent"
+        else " premise is bad"
       println(msg)
-
+    } else {
+      println("skip sanity check on premise")
     }
-
   }
 
+  @deprecated
   def getProofVals(ctx: Context, f: BoolExpr) = {
     // https://stackoverflow.com/questions/29577754/getting-proof-from-z3py
     val s = ctx.mkSolver
@@ -58,11 +75,14 @@ object z3CheckApi {
     s.getProof()
   }
 
-  private def check(ctx: Context, f: BoolExpr) = {
+  private def check(
+      ctx: Context,
+      fs: Seq[BoolExpr],
+      printSAT: Boolean = false
+  ) = {
     val s = ctx.mkSolver
-    s.add(f)
-    // s.getProof()
-    // s.
+    fs foreach (f => s.add(f))
+
     val statusR = s.check()
     val checkRes = statusR match {
       case Status.UNSATISFIABLE =>
@@ -74,34 +94,24 @@ object z3CheckApi {
 
       case Status.UNKNOWN => "UNKNOWN"
       case Status.SATISFIABLE =>
-        println(s.getModel().toString())
+        if (!printSAT) encloseDebug("model str:") {
+          println(s.getModel().toString())
+        }
         "SATISFIABLE"
       case x => "unknown : " + x.toString()
     }
 
-    val pf = Try(s.getProof()) match {
+    /* val pf = Try(s.getProof()) match {
       case Failure(exception) => "no proof"
       case Success(value)     => value.toString()
+    } */
+
+    encloseDebug("smt-lib2 str", true) {
+      println(s.toString)
+      println("smt result:", checkRes)
     }
 
-    println("--------smt-lib2 start -----------")
-    println(s.toString)
-    println("smt result:", checkRes)
-    println("proof : ", pf)
-    println("--------smt-lib2 end-----------")
-
-    //    println(s"$r : for formula  ${f} ")
     statusR
-  }
-
-  def parserExample1(): Unit = {
-    checkSmtlibStr(
-      Seq(
-        "(declare-const x Int) (declare-const y Int) (assert (and (> x y) (> x 0)))",
-        "(assert (> 0.0001 0.0))"
-        //        "(assert (and (= (snd (mk_tuple1 1.0 true)) true) (> (fst (mk_tuple1 1.0 true)) 0.0)))"
-      )
-    )
   }
 
   private def parseSmtlibStr(s: String, ctx: Context) = {

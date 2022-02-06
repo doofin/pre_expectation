@@ -7,16 +7,16 @@ object smtAST {
 
   case object SkipSmt extends StmtSmt
 
-  case class Assig[_ <: Sort](x: Expr[_], e: Expr[_]) extends StmtSmt
+  case class Assig[_ <: Sort](varname: Expr[_], expr: Expr[_]) extends StmtSmt
 
-  case class AssigRand[a <: ArithSort](x: Expr[a], d: Set[Expr[a]])
-    extends StmtSmt
+  case class AssigRand[a <: ArithSort](varname: Expr[a], dist: Set[Expr[a]])
+      extends StmtSmt
 
   case class StmtSmtList(xs: List[StmtSmt]) extends StmtSmt {
     def append(x: StmtSmt) = StmtSmtList(xs :+ x)
   }
 
   case class WhileSmt(annotation: Option[String], xs: StmtSmtList)
-    extends StmtSmt
+      extends StmtSmt
 
 }

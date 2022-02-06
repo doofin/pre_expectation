@@ -14,15 +14,21 @@ object rpeSMT {
   type Rd = RealExpr // n dim reals,let R^d=R for now
 
   def test = {
-    z3CheckApi.checkBoolCtx(
+    val (prem, propWithPrem) = genSMTterms()
+
+    val allPrem = prem.reduce(_ && _)
+
+    z3CheckApi.checkBoolExpr(
       ctx,
-      Seq(genSMTterms()),
+      Seq(propWithPrem),
       Status.UNSATISFIABLE,
-      "goal : unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))"
+      "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
+      premise = prem
     )
   }
 
 // todo: n dim version of w as uninterp function
+// w:int->real
   def w_dim_n() = {}
 
   /** generate smt terms from program statements and initial smt terms
@@ -41,6 +47,8 @@ object rpeSMT {
       // use the trick from bottom of p.10,which only works if rpe is in left hand side, due to the inequality
       val sum = d.reduce(mkAdd(_, _))
       val r = mkDiv(sum, mkInt(d.size))
+      // make a sum of E ,substitute x1 for f(v) where f:isomorphism of  S -> S and v is in distribution D
+      // (p.10 Proposition 6)
       E.substitute(x, r)
 
     case StmtSmtList(xs) =>
@@ -57,6 +65,7 @@ object rpeSMT {
     * @param w
     * @return
     */
+  // (smt result:,UNKNOWN)
   def I_gen(t: List[IntExpr], w: List[RealExpr]) = {
 
     import z3Utils._
@@ -69,20 +78,17 @@ object rpeSMT {
     val numProp = (beta > 0) && (n > 0) && (l_L >= 0)
     val (a_j, aj_prop) = aj_func(B = beta)
 
-    val (sumTerm, sumTerm_prop) = sum_func(B = beta, a_j)
+    val (sumTerm, sumTerm_prop) = sum_func(a_j)
 
     val T = mkIntConst("T")
 
     // sum for a_j from t to T
     // ctx.mkInt2Real()
-
     val `2L/n*SumAj`: RealExpr =
       (mkReal(2) * l_L / mkInt2Real(n) * sumTerm(
         t(0),
         T
       )).asInstanceOf[RealExpr]
-
-    // mkDiv(mkReal(2) * l_L, n) * sumTerm(t(0), T)
 
     import ImplicitConv._
     import InfRealTuple._
@@ -92,7 +98,7 @@ object rpeSMT {
     ) *
       ((w(0) - w(1)).normW() + `2L/n*SumAj`))
 
-    (tup, aj_prop && sumTerm_prop)
+    (tup, Seq(numProp) ++ aj_prop ++ Seq(sumTerm_prop))
   }
 
   /** L-Lipschitz property and Uninterpreted function
@@ -117,6 +123,7 @@ object rpeSMT {
   }
 
   // summation in p13  T: Int
+  // smt unknown,take 15min
   def aj_func(B: RealExpr) = {
 
     val aj: FuncDecl[RealSort] = mkFuncDecl(
@@ -125,23 +132,31 @@ object rpeSMT {
       mkRealSort()
     )
     val t: Expr[IntSort] = mkIntConst("t")
-    val aj_prop = (t < aj(t)) && (aj(t) < (mkReal(2) / B))
+    // val bt = mkRealConst("beta")
+    // val btq = bt > mkReal(0)
     // properties for array a_j :  0<=a_t<=2/B,p12
+    val aj_prop = (mkReal(0) < aj(t)) && (aj(t) < (mkReal(2) / B))
+    // 2 th premise,take long time.fixed
     val qtf = forall_z3(Array(t), aj_prop)
-    (aj, qtf)
+    (aj, Seq(qtf))
   }
 
 //  sum function in p.13
-// todo : sum over all indexes of array
 // sum_aj : int^2=>real,sum over a_j from i to j
-  def sum_func(B: RealExpr, aj: FuncDecl[RealSort]) = {
-    val sum_f_params: Array[Sort] = Array(mkIntSort(), mkIntSort())
+// (smt result:,UNKNOWN)
+  def sum_func(aj: FuncDecl[RealSort]) = {
     // val sum_f_params: Array[Sort] = Array(mkIntSort(), mkIntSort(), mkIntSort())
 //    sum from i to n.need to change 3rd param to array?
-    val sum_f = mkFuncDecl("sum", sum_f_params, mkRealSort())
+    val sum_f = mkFuncDecl(
+      "sum",
+      Array(mkIntSort(), mkIntSort()): Array[Sort],
+      mkRealSort()
+    )
     val i: Expr[IntSort] = mkIntConst("i")
     val n: Expr[IntSort] = mkIntConst("n")
 
+    import ImplicitConv.int2mkint
+    val numProp = i >= 0 && (n >= 0)
 //    use implicits for mkInt
     import ImplicitConv.int2mkint
     //  sum i j x(i) = (sum i+1 j x(i+1)) + x(i)
@@ -152,7 +167,7 @@ object rpeSMT {
     val prop2 = i > n ==> (sum_f(i, n) === 0)
 
     val qtf = forall_z3(Array(i, n), prop1 && prop2)
-    (sum_f, qtf)
+    (sum_f, numProp && qtf)
   }
 
   /** generate smt terms for while loop body for sgd example at p.12
@@ -160,7 +175,7 @@ object rpeSMT {
   def genSMTterms() = {
     import InfRealTuple._
 
-    val (l_lip: z3.FuncDecl[RealSort], qtfL) = deltaL_B_Lipschitz(1)
+    val (l_lip: z3.FuncDecl[RealSort], lip_premise) = deltaL_B_Lipschitz(1)
 
     // example test set
     val s_distrib: Set[Expr[IntSort]] =
@@ -186,25 +201,48 @@ object rpeSMT {
 
 //  relational statements for while loop body
     val whileBd_relational = StmtSmtList(
-      List(whileBd_gen(s1, g1, w1, t1), whileBd_gen(s2, g2, w2, t2)).flatten
+      (whileBd_gen(s1, g1, w1, t1) zip whileBd_gen(s2, g2, w2, t2)) flatMap (
+        x => List(x._1, x._2)
+      )
     )
+    println("whileBd_relational")
+    pp(whileBd_relational)
 
-    val (i, i_prop) = I_gen(List(t1, t2), List(w1, w2))
+    /* will print StmtSmtList(
+  xs = List(
+    AssigRand(varname = s1, dist = HashSet(s4, s3, s2, s5,s6)),
+    AssigRand(varname = s2, dist = HashSet(s4, s3, s2, s5,s6)),
+    Assig(varname = g1, expr = (lossF_Lipschitz s1 w1)),
+    Assig(varname = g2, expr = (lossF_Lipschitz s2 w2)),
+    Assig(varname = w1, expr = (- w1 g1)),
+    Assig(varname = w2, expr = (- w2 g2)),
+    Assig(varname = t1, expr = (+ t1 1)),
+    Assig(varname = t2, expr = (+ t2 1))
+  )
+)
+     */
+
+    //  generate relational I
+    val (invariant, i_prem) = I_gen(List(t1, t2), List(w1, w2))
 
     import ImplicitConv._
 
     // by TH.7.should be auto derived from I_gen
     val I_lhs: TupNum =
-      TupNum(iverB(e1 && e2) -- false) * rpeF(whileBd_relational, i.tup) +
+      TupNum(iverB(e1 && e2) -- false) * rpeF(
+        whileBd_relational,
+        invariant.tup
+      ) +
         TupNum(iverB(e1.neg && e2.neg) -- false) * (w1 - w2)
           .normW() +
         iverB(e1 !== e2)
 
-    val goal = I_lhs <= i
-    val goalWithAxiom = qtfL && i_prop ==> goal
+    val goal = I_lhs <= invariant
+    val premise: Seq[BoolExpr] = Seq(lip_premise) ++ i_prem
+    val goalWithAxiom = premise.reduce(_ && _) ==> goal
 
 //    println("I_lhs : ", I_lhs.toString)
-    goalWithAxiom.neg
+    (premise, goalWithAxiom.neg)
   }
 
 }

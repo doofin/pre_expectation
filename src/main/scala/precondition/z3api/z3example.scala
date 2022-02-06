@@ -9,6 +9,16 @@ object z3example {
 
   import precondition.z3api.z3Utils._
 
+  def parserExample1(): Unit = {
+    z3CheckApi.checkSmtlibStr(
+      Seq(
+        "(declare-const x Int) (declare-const y Int) (assert (and (> x y) (> x 0)))",
+        "(assert (> 0.0001 0.0))"
+        //        "(assert (and (= (snd (mk_tuple1 1.0 true)) true) (> (fst (mk_tuple1 1.0 true)) 0.0)))"
+      )
+    )
+  }
+
   def quantifierExample1(ctx: Context): Unit = {
     System.out.println("QuantifierExample")
     //    Log.append("QuantifierExample")
@@ -64,7 +74,7 @@ object z3example {
       null
     )
 
-    z3CheckApi.checkBoolCtx(ctx, Seq(zz))
+    z3CheckApi.checkBoolExpr(ctx, Seq(zz))
 
     val y = ctx.mkForall(
       xs.asInstanceOf[Array[Expr[_]]],
@@ -104,7 +114,7 @@ object z3example {
     )
     val qtf = forall_z3(Array(i, n), prop)
     //    (sum_f, qtf)
-    z3CheckApi.checkBoolCtx(ctx, Seq(qtf))
+    z3CheckApi.checkBoolExpr(ctx, Seq(qtf))
   }
 
   def array_aj(B: z3.RealExpr) = {
