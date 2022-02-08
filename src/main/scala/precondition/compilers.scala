@@ -40,8 +40,11 @@ object compilers {
           case UpdateVar(v, value) =>
             println("isAccum", isAccum, stmtSmtListAccu)
             if (isAccum) {
-              stmtSmtListAccu = stmtSmtListAccu.append(Assig(null, null))
-            } else stmtSmtListGlob = stmtSmtListGlob.append(Assig(null, null))
+              stmtSmtListAccu =
+                stmtSmtListAccu.append(Assig(null, null, null, null))
+            } else
+              stmtSmtListGlob =
+                stmtSmtListGlob.append(Assig(null, null, null, null))
 
             ()
           case NewVar(name) => Var(name)
@@ -67,16 +70,16 @@ object compilers {
       }
     }
 
-  /**
-   * natural transformation between type containers.
-   *need two lang,dsl->ast, can also translate into tree*/
+  /** natural transformation between type containers. need two lang,dsl->ast,
+    * can also translate into tree
+    */
   def impureCompilerId =
     new (DslStoreA ~> Id) {
       //      val kvs                     = mutable.Map.empty[String, Any]
       val kvs = mutable.Map.empty[Int, String]
       //      tr : current node to insert
       var currCtx: Option[String] = None
-      var ln: Int                 = 0
+      var ln: Int = 0
       override def apply[A](fa: DslStoreA[A]): Id[A] = {
 
         println(s"fa : ${fa}")
@@ -115,13 +118,15 @@ object compilers {
           val r: StState[Unit] = State.modify(_.updated("", v))
           r
         case NewVar(name) =>
-          val r: StState[Var] = State.inspect(_.getOrElse("", Var()).asInstanceOf[Var])
+          val r: StState[Var] =
+            State.inspect(_.getOrElse("", Var()).asInstanceOf[Var])
           r
         case While(cond, annotation, dslStoreA) =>
           val r = dslStoreA.foldMap(this)
           r
         case True =>
-          val r: StState[Boolean] = State.inspect(_.getOrElse("", true).asInstanceOf[Boolean])
+          val r: StState[Boolean] =
+            State.inspect(_.getOrElse("", true).asInstanceOf[Boolean])
           r
       }
     }

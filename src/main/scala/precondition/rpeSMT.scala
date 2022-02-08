@@ -13,46 +13,90 @@ object rpeSMT {
 
   type Rd = RealExpr // n dim reals,let R^d=R for now
 
-  def test = {
-    val (prem, propWithPrem) = genSMTterms()
+  /** generate smt terms for while loop body for sgd example at p.12
+    */
+  def genSMTterms() = {
+    import InfRealTuple._
 
-    val allPrem = prem.reduce(_ && _)
+    val (l_lip: z3.FuncDecl[RealSort], lip_premise) = deltaL_B_Lipschitz(1)
 
-    z3CheckApi.checkBoolExpr(
-      ctx,
-      Seq(propWithPrem),
-      Status.UNSATISFIABLE,
-      "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
-      premise = prem
+    // example test set
+    val s_distrib: Set[Expr[IntSort]] =
+      (2 to 6).map(x => mkIntConst(s"s$x")).toSet
+
+//    vars for loop invariant in p.13
+//    simplification:dim w = R instead of R^n
+    val w1 :: w2 :: g1 :: g2 :: Nil =
+      "w1::w2::g1::g2".split("::").toList.map(x => mkRealConst(x))
+    val t1 :: t2 :: Nil = (1 to 2).map(x => mkIntConst(s"t$x")).toList
+    val s1 :: s2 :: Nil = mkSymList(2, "s", mkIntConst)
+
+    val e1 :: e2 :: Nil = mkSymList(2, "e", mkBoolConst)
+
+    //  relational statements for while loop body
+    val whileBd_relational = StmtSmtList(
+      List(
+        AssigRand(s1, s2, s_distrib),
+        Assig(g1, l_lip(s1, w1), g2, l_lip(s2, w2)),
+        Assig(w1, w1 - g1, w2, w2 - g2),
+        Assig(t1, t1 + mkInt(1), t2, t2 + mkInt(1))
+      )
     )
-  }
 
+    println("whileBd_relational")
+    pp(whileBd_relational)
+
+    //  generate relational I
+    val (invariant, i_prem) = I_gen(List(t1, t2), List(w1, w2))
+
+    import ImplicitConv._
+
+    // by TH.7.should be auto derived from I_gen
+    val I_lhs: TupNum =
+      TupNum(iverB(e1 && e2) -- false) * rpeF(
+        whileBd_relational,
+        invariant.tup
+      ) +
+        TupNum(iverB(e1.neg && e2.neg) -- false) * (w1 - w2)
+          .normW() +
+        iverB(e1 !== e2)
+
+    val goal = I_lhs <= invariant
+    val premise: Seq[BoolExpr] = Seq(lip_premise) ++ i_prem
+    val goalWithAxiom = premise.reduce(_ && _) ==> goal
+
+//    println("I_lhs : ", I_lhs.toString)
+    (premise, goalWithAxiom.neg)
+  }
 // todo: n dim version of w as uninterp function
 // w:int->real
   def w_dim_n() = {}
 
   /** generate smt terms from program statements and initial smt terms
-    * @param stmt
+    * @param stmt:
     *   program statements
     * @param E
     *   : loop invariant
     * @return
     *   substituted E
     */
-  // todo:make it relational
   def rpeF[a <: Sort](stmt: StmtSmt, E: Expr[a]): Expr[a] = stmt match {
-    case SkipSmt         => E
-    case Assig(x, e)     => E.substitute(x, e)
-    case AssigRand(x, d) =>
+    case SkipSmt => E
+    // case Assig(x, e)     => E.substitute(x, e)
+    case Assig(x1, e1, x2, e2) =>
+      E.substitute(x1, e1).substitute(x2, e2)
+
+    case AssigRand(x1, x2, d) =>
       // use the trick from bottom of p.10,which only works if rpe is in left hand side, due to the inequality
       val sum = d.reduce(mkAdd(_, _))
       val r = mkDiv(sum, mkInt(d.size))
       // make a sum of E ,substitute x1 for f(v) where f:isomorphism of  S -> S and v is in distribution D
       // (p.10 Proposition 6)
-      E.substitute(x, r)
+      E.substitute(x1, r).substitute(x2, r)
 
     case StmtSmtList(xs) =>
       xs match {
+        case Nil      => E
         case i :: Nil => rpeF(i, E)
         case head :: tl =>
           rpeF(head, rpeF(StmtSmtList(tl), E))
@@ -170,79 +214,18 @@ object rpeSMT {
     (sum_f, numProp && qtf)
   }
 
-  /** generate smt terms for while loop body for sgd example at p.12
-    */
-  def genSMTterms() = {
-    import InfRealTuple._
+  def test = {
+    val (prem, propWithPrem) = genSMTterms()
 
-    val (l_lip: z3.FuncDecl[RealSort], lip_premise) = deltaL_B_Lipschitz(1)
+    val allPrem = prem.reduce(_ && _)
 
-    // example test set
-    val s_distrib: Set[Expr[IntSort]] =
-      (2 to 6).map(x => mkIntConst(s"s$x")).toSet
-
-//    generator for "while" body
-    def whileBd_gen(s1: IntExpr, g1: RealExpr, w1: RealExpr, t1: IntExpr) =
-      List(
-        AssigRand(s1, s_distrib),
-        Assig(g1, l_lip(s1, w1)),
-        Assig(w1, w1 - g1),
-        Assig(t1, mkAdd(t1, mkInt(1)))
-      )
-
-//    vars for loop invariant in p.13
-//    simplification:dim w = R instead of R^n
-    val w1 :: w2 :: g1 :: g2 :: Nil =
-      "w1::w2::g1::g2".split("::").toList.map(x => mkRealConst(x))
-    val t1 :: t2 :: Nil = (1 to 2).map(x => mkIntConst(s"t$x")).toList
-    val s1 :: s2 :: Nil = mkSymList(2, "s", mkIntConst)
-
-    val e1 :: e2 :: Nil = mkSymList(2, "e", mkBoolConst)
-
-//  relational statements for while loop body
-    val whileBd_relational = StmtSmtList(
-      (whileBd_gen(s1, g1, w1, t1) zip whileBd_gen(s2, g2, w2, t2)) flatMap (
-        x => List(x._1, x._2)
-      )
+    z3CheckApi.checkBoolExpr(
+      ctx,
+      Seq(propWithPrem),
+      Status.UNSATISFIABLE,
+      "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
+      premise = prem
     )
-    println("whileBd_relational")
-    pp(whileBd_relational)
-
-    /* will print StmtSmtList(
-  xs = List(
-    AssigRand(varname = s1, dist = HashSet(s4, s3, s2, s5,s6)),
-    AssigRand(varname = s2, dist = HashSet(s4, s3, s2, s5,s6)),
-    Assig(varname = g1, expr = (lossF_Lipschitz s1 w1)),
-    Assig(varname = g2, expr = (lossF_Lipschitz s2 w2)),
-    Assig(varname = w1, expr = (- w1 g1)),
-    Assig(varname = w2, expr = (- w2 g2)),
-    Assig(varname = t1, expr = (+ t1 1)),
-    Assig(varname = t2, expr = (+ t2 1))
-  )
-)
-     */
-
-    //  generate relational I
-    val (invariant, i_prem) = I_gen(List(t1, t2), List(w1, w2))
-
-    import ImplicitConv._
-
-    // by TH.7.should be auto derived from I_gen
-    val I_lhs: TupNum =
-      TupNum(iverB(e1 && e2) -- false) * rpeF(
-        whileBd_relational,
-        invariant.tup
-      ) +
-        TupNum(iverB(e1.neg && e2.neg) -- false) * (w1 - w2)
-          .normW() +
-        iverB(e1 !== e2)
-
-    val goal = I_lhs <= invariant
-    val premise: Seq[BoolExpr] = Seq(lip_premise) ++ i_prem
-    val goalWithAxiom = premise.reduce(_ && _) ==> goal
-
-//    println("I_lhs : ", I_lhs.toString)
-    (premise, goalWithAxiom.neg)
   }
 
 }

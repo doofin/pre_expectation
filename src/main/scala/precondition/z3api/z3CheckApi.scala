@@ -55,7 +55,7 @@ object z3CheckApi {
 
     if (premise.nonEmpty) {
       println("doing sanity check on premise")
-      val r = check(ctx, xs, printSAT)
+      val r = check(ctx, premise, printSAT)
       println("goal: premise is sat or unknown")
       val msg =
         if (r != Status.UNSATISFIABLE) " premise is consistent"

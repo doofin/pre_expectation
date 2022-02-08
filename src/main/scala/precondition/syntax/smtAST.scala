@@ -7,10 +7,20 @@ object smtAST {
 
   case object SkipSmt extends StmtSmt
 
-  case class Assig[_ <: Sort](varname: Expr[_], expr: Expr[_]) extends StmtSmt
+  // make it relational : x1<-e1,x2<-e2
+  case class Assig[_ <: Sort](
+      x1: Expr[_],
+      e1: Expr[_],
+      x2: Expr[_],
+      e2: Expr[_]
+  ) extends StmtSmt
 
-  case class AssigRand[a <: ArithSort](varname: Expr[a], dist: Set[Expr[a]])
-      extends StmtSmt
+  // make it relational : x1,x2<-D
+  case class AssigRand[a <: ArithSort](
+      x1: Expr[a],
+      x2: Expr[a],
+      dist: Set[Expr[a]]
+  ) extends StmtSmt
 
   case class StmtSmtList(xs: List[StmtSmt]) extends StmtSmt {
     def append(x: StmtSmt) = StmtSmtList(xs :+ x)
