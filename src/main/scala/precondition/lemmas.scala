@@ -9,7 +9,7 @@ object lemmas {
   import precondition.z3api.z3Utils._
   import precondition.InfRealTuple.thisCtx._
 
-  def f_bijection() = {
+  def f_bijection_int(): (z3.FuncDecl[IntSort], z3.Quantifier) = {
     val params: Array[Sort] = Array(mkIntSort())
     val f = mkFuncDecl("f_bij", params, mkIntSort())
     val f_inv = mkFuncDecl("f_bij_inv", params, mkIntSort())

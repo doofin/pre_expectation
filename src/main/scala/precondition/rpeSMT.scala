@@ -26,8 +26,10 @@ object rpeSMT {
 
 //    vars for loop invariant in p.13
 //    simplification:dim w = R instead of R^n
-    val w1 :: w2 :: g1 :: g2 :: Nil =
-      "w1::w2::g1::g2".split("::").toList.map(x => mkRealConst(x))
+    val wi1 :: wi2 :: Nil = mkSymList(2, "wi", mkIntConst)
+    val (w1, w2) = (w_dim_n("w1")(wi1), w_dim_n("w2")(wi2))
+    val g1 :: g2 :: Nil =
+      "g1::g2".split("::").toList.map(x => mkRealConst(x))
     val t1 :: t2 :: Nil = (1 to 2).map(x => mkIntConst(s"t$x")).toList
     val s1 :: s2 :: Nil = mkSymList(2, "s", mkIntConst)
 
@@ -70,7 +72,12 @@ object rpeSMT {
   }
 // todo: n dim version of w as uninterp function
 // w:int->real
-  def w_dim_n() = {}
+  def w_dim_n(name: String) = {
+    val typesOfParam: Array[Sort] =
+      Array(mkIntSort())
+    val w = mkFuncDecl(name, typesOfParam, mkRealSort())
+    w
+  }
 
   /** generate smt terms from program statements and initial smt terms
     * @param stmt:
@@ -110,7 +117,7 @@ object rpeSMT {
     * @return
     */
   // (smt result:,UNKNOWN)
-  def I_gen(t: List[IntExpr], w: List[RealExpr]) = {
+  def I_gen(t: List[IntExpr], w: List[Expr[RealSort]]) = {
 
     import z3Utils._
     import ImplicitConv.int2mkint
