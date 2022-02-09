@@ -51,6 +51,8 @@ object InfRealTuple {
 
     def * = mkBinaryOp(_ * _) _
 
+    def / = mkBinaryOp(_ / _) _
+
     /** if oth are pos inf,then true if both are not inf,compare real part
       */
     def <=(oth: TupNum) = {
