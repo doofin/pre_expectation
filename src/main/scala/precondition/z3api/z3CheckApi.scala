@@ -11,8 +11,9 @@ import com.doofin.stdScala._
 
 object z3CheckApi {
 
-  /** https://smtlib.cs.uiowa.edu/examples.shtml
-    */
+  /**
+   * https://smtlib.cs.uiowa.edu/examples.shtml
+   */
   def checkSmtlibStr(xs: Seq[String]) = {
     val ctx = new Context(Map[String, String]("model" -> "true").asJava)
 
@@ -23,40 +24,39 @@ object z3CheckApi {
     //    ctx.mkRealConst("t1")
   }
 
-  /** https://smtlib.cs.uiowa.edu/examples.shtml
-    */
-  /*   def checkBool(xs: Seq[BoolExpr]) = {
-    val ctx = new Context(Map[String, String]("model" -> "true").asJava)
+  /**
+   * https://smtlib.cs.uiowa.edu/examples.shtml
+   */
+  /* def checkBool(xs: Seq[BoolExpr]) = { val ctx = new Context(Map[String,
+   * String]("model" -> "true").asJava)
+   *
+   * check(ctx, xs)
+   *
+   * xs foreach { s => check(ctx, s) } } */
 
-    check(ctx, xs)
-
-    xs foreach { s =>
-      check(ctx, s)
-    }
-  } */
-
-  /** https://smtlib.cs.uiowa.edu/examples.shtml
-    *
-    * if premise is not unsat (premise is sat or unknown) ,it's fine
-    */
+  /**
+   * https://smtlib.cs.uiowa.edu/examples.shtml
+   *
+   * if premise is not unsat (premise is sat or unknown) ,it's fine
+   */
   def checkBoolExpr(
       ctx: Context,
       xs: Seq[BoolExpr],
       goal: Status = Status.SATISFIABLE,
-      goalStr: String = "",
+      goalMsg: String = "",
       printSAT: Boolean = false,
+      printSmtStr: Boolean = true,
       premise: Seq[BoolExpr] = Seq()
   ) = {
     // println("checkBoolCtx")
-    val r = check(ctx, xs, printSAT)
-    println("goal:" + goalStr)
-    val msg = if (goal == r) "goal achieved" else "goal not  achieved"
+    val r = check(ctx, xs, printSAT, printSmtStr = printSmtStr)
+    println("goal:" + goalMsg)
+    val msg = if (goal == r) "goal achieved !" else "goal failed !"
     println(msg)
 
     if (premise.nonEmpty) {
-      println("doing sanity check on premise")
-      val r = check(ctx, premise, printSAT)
-      println("goal: premise is sat or unknown")
+      println("doing sanity check on premise (goal: premise is sat or unknown)")
+      val r = check(ctx, premise, printSAT, printSmtStr = printSmtStr)
       val msg =
         if (r != Status.UNSATISFIABLE) " premise is consistent"
         else " premise is bad"
@@ -78,9 +78,14 @@ object z3CheckApi {
   private def check(
       ctx: Context,
       fs: Seq[BoolExpr],
-      printSAT: Boolean = false
+      printSAT: Boolean = false,
+      printSmtStr: Boolean = true
   ) = {
     val s = ctx.mkSolver
+    val p = ctx.mkParams()
+    /* Also tried p.Add("timeout", 1), p.Add(":timeout", 1), neither worked. */
+    p.add("timeout", 5000)
+    s.setParameters(p)
     fs foreach (f => s.add(f))
 
     val statusR = s.check()
@@ -92,7 +97,9 @@ object z3CheckApi {
         }
         "UNSATISFIABLE : " + ur
 
-      case Status.UNKNOWN => "UNKNOWN"
+      case Status.UNKNOWN =>
+        println(("UNKNOWN after checking for " + "timeout " + 5000))
+        "UNKNOWN"
       case Status.SATISFIABLE =>
         if (!printSAT) encloseDebug("model str:") {
           println(s.getModel().toString())
@@ -101,15 +108,14 @@ object z3CheckApi {
       case x => "unknown : " + x.toString()
     }
 
-    /* val pf = Try(s.getProof()) match {
-      case Failure(exception) => "no proof"
-      case Success(value)     => value.toString()
-    } */
+    /* val pf = Try(s.getProof()) match { case Failure(exception) => "no proof"
+     * case Success(value) => value.toString() } */
 
-    encloseDebug("smt-lib2 str", true) {
-      println(s.toString)
-      println("smt result:", checkRes)
-    }
+    if (printSmtStr)
+      encloseDebug("smt-lib2 str", true) {
+        println(s.toString)
+        println("smt result:", checkRes)
+      }
 
     statusR
   }

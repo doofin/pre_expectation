@@ -1,7 +1,7 @@
 package precondition.z3api
 
 import com.microsoft.z3
-import com.microsoft.z3.{Context, Expr, IntExpr, IntSort, Sort}
+import com.microsoft.z3._
 import precondition.InfRealTuple
 import precondition.z3api.z3CheckApi
 
@@ -14,7 +14,8 @@ object z3example {
       Seq(
         "(declare-const x Int) (declare-const y Int) (assert (and (> x y) (> x 0)))",
         "(assert (> 0.0001 0.0))"
-        //        "(assert (and (= (snd (mk_tuple1 1.0 true)) true) (> (fst (mk_tuple1 1.0 true)) 0.0)))"
+        /* "(assert (and (= (snd (mk_tuple1 1.0 true)) true) (> (fst (mk_tuple1
+         * 1.0 true)) 0.0)))" */
       )
     )
   }
@@ -91,7 +92,7 @@ object z3example {
 
   import precondition.InfRealTuple.thisCtx._
 
-  //recursion doesn't work
+  // recursion doesn't work
   def rectest(j: Expr[IntSort], i: IntExpr): Expr[IntSort] = {
     // import z3Utils._
     mkITE(j === i, i, rectest(mkAdd(j, mkInt(1)), i))
@@ -138,4 +139,25 @@ object z3example {
     // can't get indexes t1:IntSort to T:Int or IntSort
     ((2 * L / n) * a_j.reduce(_ + _)).toInt
   }
+
+  // todo: n dim version of w as uninterp function  or as uninterp sort
+// w:int->real
+  def w_dim_n(name: String): FuncDecl[RealSort] = {
+    // val wi1 :: wi2 :: Nil = mkSymList(2, "wi", mkIntConst)
+    // val (w1, w2) = (w_dim_n("w1")(wi1), w_dim_n("w2")(wi2))
+
+    val typesOfParam: Array[Sort] =
+      Array(mkIntSort())
+    val w = mkFuncDecl(name, typesOfParam, mkRealSort())
+    w
+  }
+
+  /* def norm_w(w: z3.FuncDecl[RealSort]) = {
+   *
+   * val params: Array[Sort] = Array(vecSort) val norm_f =
+   * mkFuncDecl("vec_norm", params, mkRealSort()) // val a = 1 val params_sel:
+   * Array[Sort] = Array(vecSort, mkIntSort()) //norm val x = mkConst("x",
+   * vecSort) val prop = norm_f(x) >= mkReal(0)
+   *
+   * val qtf = forall_z3(Array(x), prop) (norm_f, qtf) } */
 }

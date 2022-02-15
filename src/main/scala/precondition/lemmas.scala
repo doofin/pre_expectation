@@ -1,13 +1,121 @@
 package precondition
 import com.microsoft.z3
-import com.microsoft.z3.{Context, Expr, IntExpr, IntSort, Sort}
+import com.microsoft.z3._
 import precondition.InfRealTuple
 import precondition.z3api.z3CheckApi
+import fansi.Str
 
 // lemmas like bijective function,L lipschez,etc
 object lemmas {
   import precondition.z3api.z3Utils._
   import precondition.InfRealTuple.thisCtx._
+
+  type VecType = UninterpretedSort
+  type binOpType[a] = (a, a) => a
+  val vecSort: VecType = mkUninterpretedSort("vec")
+
+  // nth component of vector,but n is not specified. v->real
+  // val vec_nth: FuncDecl[RealSort] =
+  // mkFuncDecl("vec_nth", Array(vecSort): Array[Sort], mkRealSort())
+
+  val vec_nth: FuncDecl[RealSort] =
+    mkFuncDecl(
+      "vec_nth",
+      Array(mkIntSort(), vecSort): Array[Sort],
+      mkRealSort()
+    )
+
+  val (vec_add, vec_addP) = vec_binOp(_ + _, "+")
+  val (vec_minus, vec_minusP) = vec_binOp(_ - _, "-")
+  val (vec_scalaMul, vec_scalaMulP) = scala_mul_vec()
+  val (vec_norm, vec_normP) = norm_vec_gen(vec_add, vec_scalaMul)
+
+  val vecPremise = vec_addP && vec_minusP && vec_normP && vec_scalaMulP
+
+  implicit class vecOps(v: Expr[VecType]) {
+    def +(v2: Expr[VecType]) = vec_add(v, v2)
+    def -(v2: Expr[VecType]) = vec_minus(v, v2)
+    def mulByScalar(a: Expr[RealSort]) = vec_scalaMul(a, v)
+    def norm(): Expr[RealSort] = vec_norm(v)
+  }
+
+  def newVec(name: String = "x"): Expr[VecType] = mkConst(name, vecSort)
+
+  /**
+   * generate norm operator for vec. return: normF : vec -> real
+   */
+  def norm_vec_gen(vec_add: FuncDecl[VecType], scalaMul: FuncDecl[VecType]) = {
+    val normF =
+      mkFuncDecl(
+        "norm_vec",
+        Array(vecSort): Array[Sort],
+        mkRealSort()
+      )
+    /* axioms for norm:
+     * 1:|v|>=0
+     * 2:|v+w|<=|v|+|w|
+     * 3:|av|=|a||v| */
+    val p1 = {
+      val v = newVec("v")
+      val prop = normF(v) >= mkReal(0)
+      forall_z3(Array(v), prop)
+    }
+    val p2 = {
+      val v = newVec("v1")
+      val w = newVec("w")
+      val prop = normF(vec_add(v, w)) <= normF(v) + normF(w)
+      forall_z3(Array(v), prop)
+    }
+
+    val p3 = {
+      val v = newVec("v")
+      val a = mkRealConst("a")
+      val prop = normF(scalaMul(a, v)) === (a.normW() * normF(v))
+      forall_z3(Array(v), prop)
+    }
+
+    (normF, p1 && p2 && p3)
+  }
+
+  /* scala multiply vector */
+  def scala_mul_vec() = {
+    val scalaMul: FuncDecl[VecType] =
+      mkFuncDecl(
+        "scalaMul",
+        Array(mkRealSort(), vecSort): Array[Sort],
+        vecSort
+      )
+
+    val a = mkRealConst("a")
+    val i = mkIntConst("i")
+    val v = mkConst("v", vecSort)
+    // (a*v)[i]=a*v[i]
+    val prop =
+      vec_nth(i, scalaMul(a, v)) === a * vec_nth(i, v)
+    val qtf = forall_z3(Array(i, a, v).asInstanceOf[Array[Expr[Sort]]], prop)
+
+    (scalaMul, qtf)
+  }
+
+  /**
+   * lift operation on real to vector axiom : distributive. for example,minus:
+   * a[i]-b[i]=(a-b)[i]?
+   */
+  def vec_binOp(
+      binReal: binOpType[Expr[RealSort]],
+      name: String
+  ) = {
+    val a = mkConst("a", vecSort)
+    val b = mkConst("b", vecSort)
+    val i = mkIntConst("i")
+    val binOp: FuncDecl[VecType] =
+      mkFuncDecl("binOp_" + name, Array(vecSort, vecSort): Array[Sort], vecSort)
+    // a[i]-b[i]=(a-b)[i]
+    val prop =
+      binReal(vec_nth(i, a), vec_nth(i, b)) === vec_nth(i, binOp(a, b))
+    val qtf = forall_z3(Array(a, b), prop)
+    (binOp, qtf)
+  }
 
   def f_bijection_int(): (z3.FuncDecl[IntSort], z3.Quantifier) = {
     val params: Array[Sort] = Array(mkIntSort())
