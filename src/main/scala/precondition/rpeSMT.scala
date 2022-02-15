@@ -78,22 +78,11 @@ object rpeSMT {
   }
 
   /**
-   * generate smt terms from program statements and initial smt terms
-   * @param stmt:
-   *   program statements
-   * @param E
-   *   : loop invariant
-   * @return
-   *   substituted E
-   */
-
-  /**
    * generate relational loop invariant I from unrelational loop invariant I
    * @param t
    * @param w
    * @return
    */
-  // (smt result:,UNKNOWN)
   def I_gen(t: List[IntExpr], w: List[Expr[VecType]]) = {
 
     import z3Utils._

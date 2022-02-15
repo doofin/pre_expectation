@@ -15,6 +15,16 @@ object rpeFunction {
   import ctx._
 
   import InfRealTuple.TupNum
+
+  /**
+   * generate smt terms from program statements and initial smt terms
+   * @param stmt:
+   *   program statements
+   * @param E
+   *   : loop invariant
+   * @return
+   *   substituted E
+   */
   def rpeF(f_bij: z3.FuncDecl[IntSort])(stmt: StmtSmt, E: TupNum): TupNum =
     stmt match {
       case SkipSmt => E
