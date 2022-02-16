@@ -2,7 +2,7 @@ package precondition
 
 import cats.{Id, ~>}
 import precondition.syntax.dslAST._
-import precondition.rpeSMT._
+import precondition.sgdExample._
 
 import scala.collection.mutable
 
@@ -10,9 +10,10 @@ import precondition.syntax.smtAST._
 
 object compilers {
 
-  /** natural transformation between type containers. need two lang,dsl->ast,
-    * can also translate into tree
-    */
+  /**
+   * natural transformation between type containers. need two lang,dsl->ast, can
+   * also translate into tree
+   */
   def compileSyntax2Smt =
     new (DslStoreA ~> Id) {
       val kvs = mutable.Map.empty[Int, String]
@@ -70,9 +71,10 @@ object compilers {
       }
     }
 
-  /** natural transformation between type containers. need two lang,dsl->ast,
-    * can also translate into tree
-    */
+  /**
+   * natural transformation between type containers. need two lang,dsl->ast, can
+   * also translate into tree
+   */
   def impureCompilerId =
     new (DslStoreA ~> Id) {
       //      val kvs                     = mutable.Map.empty[String, Any]

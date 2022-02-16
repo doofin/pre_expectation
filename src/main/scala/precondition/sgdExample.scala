@@ -9,7 +9,7 @@ import cats.kernel.instances.TupleMonoidInstances
 
 import lemmas._
 import rpeFunction.rpeF
-object rpeSMT {
+object sgdExample {
   import precondition.z3api.z3Utils._ // scala bug? can't move this outside
   private lazy val ctx = z3Utils.newZ3ctx()
   import ctx._
@@ -39,12 +39,15 @@ object rpeSMT {
 
     val e1 :: e2 :: Nil = mkSymList(2, "e", mkBoolConst)
 
+    // a_t for sgd
+    val at = mkRealConst("a_t")
+    val atPrpo = at > mkReal(0)
     //  relational statements for while loop body
     val whileBd_relational = StmtSmtList(
       List(
         AssigRand(s1, s2, s_distrib),
         Assig(g1, l_lip(s1, w1), g2, l_lip(s2, w2)),
-        Assig(w1, w1 - g1, w2, w2 - g2),
+        Assig(w1, w1 - g1.mulByScalar(at), w2, w2 - g2.mulByScalar(at)),
         Assig(t1, t1 + mkInt(1), t2, t2 + mkInt(1))
       )
     )
@@ -70,7 +73,8 @@ object rpeSMT {
         iverB(e1 !== e2)
 
     val goal = I_lhs <= invariant
-    val premise: Seq[BoolExpr] = Seq(lip_premise, lemmas.vecPremise) ++ i_prem
+    val premise: Seq[BoolExpr] =
+      Seq(lip_premise, lemmas.vecPremise, atPrpo) ++ i_prem
     val goalWithAxiom = premise.reduce(_ && _) ==> goal
 
 //    println("I_lhs : ", I_lhs.toString)
