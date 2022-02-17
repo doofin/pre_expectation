@@ -31,6 +31,9 @@ object sgdExample {
 
 //    vars for loop invariant in p.13
 //   prev simplification:dim w = R instead of R^n
+    val w0 = newVec("w0")
+    val t0 = mkIntConst("t0")
+    val t0prop = t0 === mkInt(0)
     val (w1, w2) = (newVec("w1"), newVec("w2"))
 
     val (g1, g2) = (newVec("g1"), newVec("g2"))
@@ -42,7 +45,14 @@ object sgdExample {
     // a_t for sgd
     val at = mkRealConst("a_t")
     val atPrpo = at > mkReal(0)
+
+    val varProps = atPrpo && t0prop
+    val (f_bij, f_bij_prop) = lemmas.f_bijection_int()
+    val rpeF_inst = rpeF(f_bij) _
     //  relational statements for while loop body
+    //  generate relational I
+    val (invariant, i_prem) = I_gen(List(t1, t2), List(w1, w2))
+
     val whileBd_relational = StmtSmtList(
       List(
         AssigRand(s1, s2, s_distrib),
@@ -51,18 +61,32 @@ object sgdExample {
         Assig(t1, t1 + mkInt(1), t2, t2 + mkInt(1))
       )
     )
+    
+    // todo: sgd is not used
+    // interp seq is revesed,how to put params for invariant?
+    val sgd =
+      StmtSmtList(
+        List(
+          NewVars(w1, w0, w2, w0),
+          NewVars(t1, t0, t2, t0),
+          WhileSmt(
+            I_gen(List(t1, t2), List(w1, w2))._1.tup,
+            whileBd_relational
+          )
+        )
+      )
 
     // println("whileBd_relational")
     // pp(whileBd_relational)
 
-    //  generate relational I
-    val (invariant, i_prem) = I_gen(List(t1, t2), List(w1, w2))
+    // test on sgd whole
+    println("rpeF_inst(sgd, invariant)")
+    rpeF_inst(sgd, invariant)
 
     import ImplicitConv._
 
     // by TH.7.should be auto derived from I_gen
-    val (f_bij, f_bij_prop) = lemmas.f_bijection_int()
-    val rpeF_inst = rpeF(f_bij) _
+
     val I_lhs: TupNum =
       TupNum(iverB(e1 && e2) -- false) * rpeF_inst(
         whileBd_relational,
@@ -74,7 +98,7 @@ object sgdExample {
 
     val goal = I_lhs <= invariant
     val premise: Seq[BoolExpr] =
-      Seq(lip_premise, lemmas.vecPremise, atPrpo) ++ i_prem
+      Seq(lip_premise, lemmas.vecPremise, varProps) ++ i_prem
     val goalWithAxiom = premise.reduce(_ && _) ==> goal
 
 //    println("I_lhs : ", I_lhs.toString)

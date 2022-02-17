@@ -21,12 +21,16 @@ object rpeFunction {
    * @param stmt:
    *   program statements
    * @param E
-   *   : loop invariant
+   *   : the initial map E,or loop invariant
    * @return
    *   substituted E
    */
   def rpeF(f_bij: z3.FuncDecl[IntSort])(stmt: StmtSmt, E: TupNum): TupNum =
     stmt match {
+      case NewVars(x1, e1, x2, e2) =>
+        println("NewVars(x1, e1, x2, e2)")
+        println(e1, e2)
+        E.copy(tup = E.tup.substitute(x1, e1).substitute(x2, e2))
       case SkipSmt => E
       // case Assig(x, e)     => E.substitute(x, e)
       case Assig(x1, e1, x2, e2) =>
@@ -46,6 +50,7 @@ object rpeFunction {
         import ImplicitConv._
         sum1 / mkReal(d.size)
 
+      // eval of stmt is done reversely!
       case StmtSmtList(xs) =>
         xs match {
           case Nil      => E
@@ -53,6 +58,14 @@ object rpeFunction {
           case head :: tl =>
             rpeF(f_bij)(head, rpeF(f_bij)(StmtSmtList(tl), E))
         }
-      case WhileSmt(annotation, xs) => rpeF(f_bij)(xs, E)
+      case WhileSmt(annotation, xs) =>
+        // need to find t,w in xs,feed to anno
+        // just E && annotation ?
+        // E.tup.getArgs()
+        println("WhileSmt(annotation, xs)")
+        println(E.tup)
+        // assert(false)
+        //
+        rpeF(f_bij)(xs, E)
     }
 }

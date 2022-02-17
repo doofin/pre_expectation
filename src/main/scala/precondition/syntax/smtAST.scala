@@ -1,6 +1,7 @@
 package precondition.syntax
 
 import com.microsoft.z3._
+import precondition.lemmas.VecType
 
 object smtAST {
   sealed trait StmtSmt
@@ -9,6 +10,13 @@ object smtAST {
 
   // make it relational : x1<-e1,x2<-e2
   case class Assig[_ <: Sort](
+      x1: Expr[_],
+      e1: Expr[_],
+      x2: Expr[_],
+      e2: Expr[_]
+  ) extends StmtSmt
+
+  case class NewVars[_ <: Sort](
       x1: Expr[_],
       e1: Expr[_],
       x2: Expr[_],
@@ -26,7 +34,9 @@ object smtAST {
     def append(x: StmtSmt) = StmtSmtList(xs :+ x)
   }
 
-  case class WhileSmt(annotation: Option[String], xs: StmtSmtList)
-      extends StmtSmt
+  case class WhileSmt(
+      annotation: Expr[_],
+      xs: StmtSmtList
+  ) extends StmtSmt
 
 }
