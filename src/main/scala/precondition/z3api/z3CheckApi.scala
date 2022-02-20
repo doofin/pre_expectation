@@ -27,8 +27,8 @@ object z3CheckApi {
   /**
    * https://smtlib.cs.uiowa.edu/examples.shtml
    */
-  /* def checkBool(xs: Seq[BoolExpr]) = { val ctx = new Context(Map[String,
-   * String]("model" -> "true").asJava)
+  /* def checkBool(xs: Seq[BoolExpr]) = { val ctx = new Context(Map[String, String]("model" ->
+   * "true").asJava)
    *
    * check(ctx, xs)
    *
@@ -108,8 +108,8 @@ object z3CheckApi {
       case x => "unknown : " + x.toString()
     }
 
-    /* val pf = Try(s.getProof()) match { case Failure(exception) => "no proof"
-     * case Success(value) => value.toString() } */
+    /* val pf = Try(s.getProof()) match { case Failure(exception) => "no proof" case Success(value)
+     * => value.toString() } */
 
     if (printSmtStr)
       encloseDebug("smt-lib2 str", true) {

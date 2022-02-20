@@ -9,6 +9,7 @@ import cats.kernel.instances.TupleMonoidInstances
 
 import lemmas._
 import rpeFunction.rpeF
+import InfRealTuple.TupNum
 object sgdExample {
   import precondition.z3api.z3Utils._ // scala bug? can't move this outside
   private lazy val ctx = z3Utils.newZ3ctx()
@@ -21,9 +22,7 @@ object sgdExample {
    */
   def genSMTterms() = {
     import InfRealTuple._
-
-    // delta L function with Lipschitz property
-    val (l_lip, lip_premise) = vec_deltaL(1)
+    import ImplicitConv._
 
     // example test set
     val s_distrib: Set[Expr[IntSort]] =
@@ -40,18 +39,23 @@ object sgdExample {
     val t1 :: t2 :: Nil = (1 to 2).map(x => mkIntConst(s"t$x")).toList
     val s1 :: s2 :: Nil = mkSymList(2, "s", mkIntConst)
 
-    val e1 :: e2 :: Nil = mkSymList(2, "e", mkBoolConst)
+    val T: IntExpr = mkIntConst("T")
+
+    val e1 :: e2 :: Nil = List(t1 > 0, t2 > 0)
 
     // a_t for sgd
     val at = mkRealConst("a_t")
     val atPrpo = at > mkReal(0)
 
     val varProps = atPrpo && t0prop
+    // delta L function with Lipschitz property
+    val (l_lip, lip_premise) = vec_deltaL(1)
+
     val (f_bij, f_bij_prop) = lemmas.f_bijection_int()
     val rpeF_inst = rpeF(f_bij) _
     //  relational statements for while loop body
     //  generate relational I
-    val (invariant, i_prem) = I_gen(List(t1, t2), List(w1, w2))
+    val (invariant, sumF_Aj, i_prem) = invariant_gen(List(t1, t2), List(w1, w2), T)
 
     val whileBd_relational = StmtSmtList(
       List(
@@ -61,7 +65,7 @@ object sgdExample {
         Assig(t1, t1 + mkInt(1), t2, t2 + mkInt(1))
       )
     )
-    
+
     // todo: sgd is not used
     // interp seq is revesed,how to put params for invariant?
     val sgd =
@@ -70,14 +74,13 @@ object sgdExample {
           NewVars(w1, w0, w2, w0),
           NewVars(t1, t0, t2, t0),
           WhileSmt(
-            I_gen(List(t1, t2), List(w1, w2))._1.tup,
+            invariant,
+            (e1, e2),
             whileBd_relational
           )
         )
       )
 
-    // println("whileBd_relational")
-    // pp(whileBd_relational)
 
     // test on sgd whole
     println("rpeF_inst(sgd, invariant)")
@@ -87,53 +90,63 @@ object sgdExample {
 
     // by TH.7.should be auto derived from I_gen
 
-    val I_lhs: TupNum =
-      TupNum(iverB(e1 && e2) -- false) * rpeF_inst(
+    val I_lhs: TupNum = invar_lhs_gen(
+      e1,
+      e2,
+      rpeF_inst(
         whileBd_relational,
         invariant
-      ) +
-        TupNum(iverB(e1.neg && e2.neg) -- false) * (w1 - w2)
-          .norm() +
-        iverB(e1 !== e2)
+      ),
+      (w1 - w2)
+        .norm()
+    )
 
     val goal = I_lhs <= invariant
     val premise: Seq[BoolExpr] =
       Seq(lip_premise, lemmas.vecPremise, varProps) ++ i_prem
     val goalWithAxiom = premise.reduce(_ && _) ==> goal
 
+    val goal2lhs = rpeF_inst(
+      sgd,
+      (w1 - w2)
+        .norm()
+    )
+
+    val goal2rhs = sumF_Aj(0, T - 1)
+    val finalGoal = goal2lhs <= goal2rhs
 //    println("I_lhs : ", I_lhs.toString)
     (premise, goalWithAxiom.neg)
   }
 
   /**
-   * generate relational loop invariant I from unrelational loop invariant I
+   * loop invariant I at p13 to be put as annotation of while loop
    * @param t
    * @param w
    * @return
    */
-  def I_gen(t: List[IntExpr], w: List[Expr[VecType]]) = {
+  def invariant_gen(t: List[IntExpr], w: List[Expr[VecType]], T: IntExpr) = {
 
     import z3Utils._
     import ImplicitConv.int2mkint
 //    sum terms in I in p.13
-    // val `2L/n*SumAj` = mkReal(1)
     val (beta, n, l_L) =
       (mkRealConst("beta"), mkIntConst("n"), mkRealConst("L"))
 
     val numProp = (beta > 0) && (n > 0) && (l_L >= 0)
     val (a_j, aj_prop) = aj_func(B = beta)
 
-    val (sumTerm, sumTerm_prop) = sum_func(a_j)
+    val (sumFuncInst, sumFunc_prop) = sum_func(a_j)
 
-    val T = mkIntConst("T")
-
-    // sum for a_j from t to T
-    // ctx.mkInt2Real()
-    val `2L/n*SumAj`: RealExpr =
-      (mkReal(2) * l_L / mkInt2Real(n) * sumTerm(
-        t(0),
-        T
+    val sumTermAjF = { (startIdx: Expr[IntSort], endIdx: Expr[IntSort]) =>
+      (mkReal(2) * l_L / mkInt2Real(n) * sumFuncInst(
+        startIdx,
+        endIdx
       )).asInstanceOf[RealExpr]
+    }
+
+    // sum for a_j from t to T . ctx.mkInt2Real()
+    val `2L/n*SumAj`: RealExpr =
+      sumTermAjF(t(0), T)
 
     import ImplicitConv._
     import InfRealTuple._
@@ -143,9 +156,10 @@ object sgdExample {
     ) *
       ((w(0) - w(1)).norm() + `2L/n*SumAj`))
 
-    (tup, Seq(numProp) ++ aj_prop ++ Seq(sumTerm_prop))
+    (tup, sumTermAjF, Seq(numProp) ++ aj_prop ++ Seq(sumFunc_prop))
   }
 
+  // delta loss function for vector W
   def vec_deltaL(B: Long) = {
 
     val typesOfParam: Array[Sort] =
@@ -205,36 +219,6 @@ object sgdExample {
     // 2 th premise,take long time.fixed
     val qtf = forall_z3(Array(t), aj_prop)
     (aj, Seq(qtf))
-  }
-
-//  sum function in p.13
-// sum_aj : int^2=>real,sum over a_j from i to j
-// (smt result:,UNKNOWN)
-  def sum_func(aj: FuncDecl[RealSort]) = {
-    /* val sum_f_params: Array[Sort] = Array(mkIntSort(), mkIntSort(),
-     * mkIntSort()) */
-//    sum from i to n.need to change 3rd param to array?
-    val sum_f = mkFuncDecl(
-      "sum",
-      Array(mkIntSort(), mkIntSort()): Array[Sort],
-      mkRealSort()
-    )
-    val i: Expr[IntSort] = mkIntConst("i")
-    val n: Expr[IntSort] = mkIntConst("n")
-
-    import ImplicitConv.int2mkint
-    val numProp = i >= 0 && (n >= 0)
-//    use implicits for mkInt
-    import ImplicitConv.int2mkint
-    //  sum i j x(i) = (sum i+1 j x(i+1)) + x(i)
-    // val prop = sum_f(i, n, aj(i)) === (sum_f(i + 1, n, aj(i + 1)) + aj(i))
-    // trick: encode a_j inside sum
-    //  sum i j = (sum i+1 j) + x(i)
-    val prop1 = i <= n ==> (sum_f(i, n) === (sum_f(i + 1, n) + aj(i)))
-    val prop2 = i > n ==> (sum_f(i, n) === 0)
-
-    val qtf = forall_z3(Array(i, n), prop1 && prop2)
-    (sum_f, numProp && qtf)
   }
 
   def test = {

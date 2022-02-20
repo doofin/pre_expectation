@@ -37,14 +37,13 @@ object rpeFunction {
         E.copy(tup = E.tup.substitute(x1, e1).substitute(x2, e2))
 
       case AssigRand(x1, x2, d) =>
-        /* use the trick from bottom of p.10,which only works if rpe is in left
-         * hand side, due to the inequality */
-        /* make a sum of E ,substitute x1 for f(v) where f:isomorphism of S -> S
-         * and v is in distribution D */
+        /* use the trick from bottom of p.10,which only works if rpe is in left hand side, due to
+         * the inequality */
+        /* make a sum of E ,substitute x1 for f(v) where f:isomorphism of S -> S and v is in
+         * distribution D */
         // (p.10 Proposition 6)
         val sum1 = d
-          .map(v =>
-            E.copy(tup = E.tup.substitute(x1, v).substitute(x2, f_bij(v))) // .substitute(x2, r)
+          .map(v => E.copy(tup = E.tup.substitute(x1, v).substitute(x2, f_bij(v))) // .substitute(x2, r)
           )
           .reduce(_ + _)
         import ImplicitConv._
@@ -58,14 +57,11 @@ object rpeFunction {
           case head :: tl =>
             rpeF(f_bij)(head, rpeF(f_bij)(StmtSmtList(tl), E))
         }
-      case WhileSmt(annotation, xs) =>
-        // need to find t,w in xs,feed to anno
-        // just E && annotation ?
-        // E.tup.getArgs()
-        println("WhileSmt(annotation, xs)")
-        println(E.tup)
-        // assert(false)
-        //
-        rpeF(f_bij)(xs, E)
+      case WhileSmt(invariant, (e1, e2), xs) =>
+        // invariant.substitute(e1, e2)
+        // put I and cond as some side condition
+        val sideCond = invar_lhs_gen(e1, e2, E, E)
+        // just return invariant due to TH.7 at p.11 because we have proven the side condition
+        rpeF(f_bij)(xs, invariant)
     }
 }

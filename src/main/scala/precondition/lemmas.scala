@@ -3,8 +3,9 @@ import com.microsoft.z3
 import com.microsoft.z3._
 import precondition.InfRealTuple
 import precondition.z3api.z3CheckApi
-import fansi.Str
 
+import com.doofin.stdScala._
+import InfRealTuple.TupNum
 // lemmas like bijective function,L lipschez,etc
 object lemmas {
   import precondition.z3api.z3Utils._
@@ -98,8 +99,7 @@ object lemmas {
   }
 
   /**
-   * lift operation on real to vector axiom : distributive. for example,minus:
-   * a[i]-b[i]=(a-b)[i]?
+   * lift operation on real to vector axiom : distributive. for example,minus: a[i]-b[i]=(a-b)[i]?
    */
   def vec_binOp(
       binReal: binOpType[Expr[RealSort]],
@@ -126,5 +126,50 @@ object lemmas {
 
     val qtf = forall_z3(Array(z1), prop)
     (f, qtf)
+  }
+
+  def iverB(x: Expr[BoolSort]) = {
+    mkITE(x, mkReal(1), mkReal(0))
+  }
+
+  def invar_lhs_gen(e1: BoolExpr, e2: BoolExpr, rpeApplied: TupNum, E: TupNum) = {
+    import ImplicitConv._
+    import InfRealTuple._
+
+    val I_lhs: TupNum =
+      TupNum(iverB(e1 && e2) -- false) * rpeApplied +
+        TupNum(iverB(e1.neg && e2.neg) -- false) * E +
+        iverB(e1 !== e2)
+
+    I_lhs
+  }
+  //  sum function in p.13
+// sum_aj : int^2=>real,sum over a_j from i to j
+// (smt result:,UNKNOWN)
+
+  def sum_func(aj: FuncDecl[RealSort]) = {
+    /* val sum_f_params: Array[Sort] = Array(mkIntSort(), mkIntSort(), mkIntSort()) */
+//    sum from i to n.need to change 3rd param to array?
+    val sum_f = mkFuncDecl(
+      "sum",
+      Array(mkIntSort(), mkIntSort()): Array[Sort],
+      mkRealSort()
+    )
+    val i: Expr[IntSort] = mkIntConst("i")
+    val n: Expr[IntSort] = mkIntConst("n")
+
+    import ImplicitConv.int2mkint
+    val numProp = i >= 0 && (n >= 0)
+//    use implicits for mkInt
+    import ImplicitConv.int2mkint
+    //  sum i j x(i) = (sum i+1 j x(i+1)) + x(i)
+    // val prop = sum_f(i, n, aj(i)) === (sum_f(i + 1, n, aj(i + 1)) + aj(i))
+    // trick: encode a_j inside sum
+    //  sum i j = (sum i+1 j) + x(i)
+    val prop1 = i <= n ==> (sum_f(i, n) === (sum_f(i + 1, n) + aj(i)))
+    val prop2 = i > n ==> (sum_f(i, n) === 0)
+
+    val qtf = forall_z3(Array(i, n), prop1 && prop2)
+    (sum_f, numProp && qtf)
   }
 }

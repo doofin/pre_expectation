@@ -2,6 +2,7 @@ package precondition.syntax
 
 import com.microsoft.z3._
 import precondition.lemmas.VecType
+import precondition.InfRealTuple
 
 object smtAST {
   sealed trait StmtSmt
@@ -35,7 +36,8 @@ object smtAST {
   }
 
   case class WhileSmt(
-      annotation: Expr[_],
+      annotation: InfRealTuple.TupNum,
+      cond: (BoolExpr, BoolExpr),
       xs: StmtSmtList
   ) extends StmtSmt
 

@@ -34,9 +34,7 @@ object z3Utils {
 
   import ctx._
 
-  def iverB(x: Expr[BoolSort]) = {
-    mkITE(x, mkReal(1), mkReal(0))
-  }
+  
 
   implicit class exprOps(x: Expr[_]) {
 
