@@ -4,7 +4,7 @@ import precondition._
 import org.scalatest.funsuite._
 import precondition.z3api.z3Utils
 
-class testSmt extends AnyFunSuite {
+class testSgd extends AnyFunSuite {
   test("smt_z3") {
 //    smt_z3.run
     sgdExample.test

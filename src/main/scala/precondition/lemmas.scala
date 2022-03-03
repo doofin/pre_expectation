@@ -132,14 +132,15 @@ object lemmas {
     mkITE(x, mkReal(1), mkReal(0))
   }
 
+  // gen lhs of  p13.1 regarding loop rule
   def invar_lhs_gen(e1: BoolExpr, e2: BoolExpr, rpeApplied: TupNum, E: TupNum) = {
     import ImplicitConv._
     import InfRealTuple._
 
     val I_lhs: TupNum =
-      TupNum(iverB(e1 && e2) -- false) * rpeApplied +
-        TupNum(iverB(e1.neg && e2.neg) -- false) * E +
-        iverB(e1 !== e2)
+      TupNum(iverB(e1 && e2)) * rpeApplied +
+        (TupNum(iverB(e1.neg && e2.neg)) * E) +
+        (iverB(e1 !== e2) * infty_+)
 
     I_lhs
   }

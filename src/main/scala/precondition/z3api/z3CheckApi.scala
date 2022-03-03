@@ -42,7 +42,7 @@ object z3CheckApi {
   def checkBoolExpr(
       ctx: Context,
       xs: Seq[BoolExpr],
-      goal: Status = Status.SATISFIABLE,
+      goals: List[Status] = List(Status.SATISFIABLE),
       goalMsg: String = "",
       printSAT: Boolean = false,
       printSmtStr: Boolean = true,
@@ -50,8 +50,8 @@ object z3CheckApi {
   ) = {
     // println("checkBoolCtx")
     val r = check(ctx, xs, printSAT, printSmtStr = printSmtStr)
-    println("goal:" + goalMsg)
-    val msg = if (goal == r) "goal achieved !" else "goal failed !"
+    println(s"goal: ${goals} , result: ${r} , description : " + goalMsg)
+    val msg = if (goals contains r) "goal achieved !" else s"goal failed ! result ${r} != ${goals}"
     println(msg)
 
     if (premise.nonEmpty) {
@@ -84,7 +84,8 @@ object z3CheckApi {
     val s = ctx.mkSolver
     val p = ctx.mkParams()
     /* Also tried p.Add("timeout", 1), p.Add(":timeout", 1), neither worked. */
-    p.add("timeout", 5000)
+    val timeout = 5000
+    p.add("timeout", timeout)
     s.setParameters(p)
     fs foreach (f => s.add(f))
 
@@ -98,7 +99,7 @@ object z3CheckApi {
         "UNSATISFIABLE : " + ur
 
       case Status.UNKNOWN =>
-        println(("UNKNOWN after checking for " + "timeout " + 5000))
+        println(("UNKNOWN after checking for " + "timeout " + timeout))
         "UNKNOWN"
       case Status.SATISFIABLE =>
         if (!printSAT) encloseDebug("model str:") {

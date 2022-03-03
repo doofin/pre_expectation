@@ -8,14 +8,12 @@ import precondition.z3api.{z3CheckApi, z3Utils}
 import cats.kernel.instances.TupleMonoidInstances
 
 import lemmas._
-import rpeFunction.rpeF
+import rpeFunction._
 import InfRealTuple.TupNum
 object sgdExample {
   import precondition.z3api.z3Utils._ // scala bug? can't move this outside
   private lazy val ctx = z3Utils.newZ3ctx()
   import ctx._
-
-  type Rd = RealExpr // n dim reals,let R^d=R for now
 
   /**
    * generate smt terms for while loop body for sgd example at p.12
@@ -54,7 +52,7 @@ object sgdExample {
     val (f_bij, f_bij_prop) = lemmas.f_bijection_int()
     val rpeF_inst = rpeF(f_bij) _
     //  relational statements for while loop body
-    //  generate relational I
+    //  generate relational I ,also return sumF_Aj=sum i j a_j for convenience
     val (invariant, sumF_Aj, i_prem) = invariant_gen(List(t1, t2), List(w1, w2), T)
 
     val whileBd_relational = StmtSmtList(
@@ -66,8 +64,6 @@ object sgdExample {
       )
     )
 
-    // todo: sgd is not used
-    // interp seq is revesed,how to put params for invariant?
     val sgd =
       StmtSmtList(
         List(
@@ -81,41 +77,49 @@ object sgdExample {
         )
       )
 
-
-    // test on sgd whole
-    println("rpeF_inst(sgd, invariant)")
-    rpeF_inst(sgd, invariant)
-
     import ImplicitConv._
 
     // by TH.7.should be auto derived from I_gen
 
-    val I_lhs: TupNum = invar_lhs_gen(
-      e1,
-      e2,
-      rpeF_inst(
-        whileBd_relational,
-        invariant
-      ),
-      (w1 - w2)
-        .norm()
-    )
-
-    val goal = I_lhs <= invariant
-    val premise: Seq[BoolExpr] =
+    val premises: Seq[BoolExpr] =
       Seq(lip_premise, lemmas.vecPremise, varProps) ++ i_prem
-    val goalWithAxiom = premise.reduce(_ && _) ==> goal
 
-    val goal2lhs = rpeF_inst(
+    val premise = premises.reduce(_ && _)
+    // previouse goal of p13 (1)
+    // val I_lhs: TupNum = invar_lhs_gen(
+    //   e1,
+    //   e2,
+    //   rpeF_inst(
+    //     whileBd_relational,
+    //     invariant,
+    //     List()
+    //   )._1,
+    //   (w1 - w2)
+    //     .norm()
+    // )
+
+    // val goal = I_lhs <= invariant
+    // val goalWithAxiom = premise ==> goal
+
+    // p13. rpe(sgd,|w1-w2|) <= 2L/n sum
+    val (goalLhs, sideConds) = rpeF_inst(
       sgd,
       (w1 - w2)
-        .norm()
+        .norm(),
+      List()
     )
 
-    val goal2rhs = sumF_Aj(0, T - 1)
-    val finalGoal = goal2lhs <= goal2rhs
+    val sideCond = sideConds.reduce(_ && _)
+
+    // sum 0 T - 1 a_j
+    val goalRhs = sumF_Aj(0, T - 1)
+    // println("sideCond :", sideCond.toString())
+    // println("goal2lhs <= goal2rhs")
+    // println(goal2lhs <= goal2rhs)
+    val finalGoal = (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond)
 //    println("I_lhs : ", I_lhs.toString)
-    (premise, goalWithAxiom.neg)
+    // (premises, goalWithAxiom.neg)
+    (premises, finalGoal.neg)
   }
 
   /**
@@ -229,7 +233,7 @@ object sgdExample {
     z3CheckApi.checkBoolExpr(
       ctx,
       Seq(propWithPrem),
-      Status.UNSATISFIABLE,
+      List(Status.UNSATISFIABLE, Status.UNKNOWN),
       "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
       premise = prem,
       printSmtStr = false
