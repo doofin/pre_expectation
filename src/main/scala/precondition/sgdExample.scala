@@ -41,13 +41,13 @@ object sgdExample {
 
     val e1 :: e2 :: Nil = List(t1 > 0, t2 > 0)
 
-    // a_t for sgd
-    val at = mkRealConst("a_t")
-    val atPrpo = at > mkReal(0)
+    // a_t for sgd at p13
+    val a_t = mkRealConst("a_t")
+    val atPrpo = a_t > mkReal(0)
 
     val varProps = atPrpo && t0prop
     // delta L function with Lipschitz property
-    val (l_lip, lip_premise) = vec_deltaL(1)
+    val (deltaL, lipschez_premise) = vec_deltaL(1)
 
     val (f_bij, f_bij_prop) = lemmas.f_bijection_int()
     val rpeF_inst = rpeF(f_bij) _
@@ -58,13 +58,13 @@ object sgdExample {
     val whileBd_relational = StmtSmtList(
       List(
         AssigRand(s1, s2, s_distrib),
-        Assig(g1, l_lip(s1, w1), g2, l_lip(s2, w2)),
-        Assig(w1, w1 - g1.mulByScalar(at), w2, w2 - g2.mulByScalar(at)),
+        Assig(g1, deltaL(s1, w1), g2, deltaL(s2, w2)),
+        Assig(w1, w1 - g1.mulByScalar(a_t), w2, w2 - g2.mulByScalar(a_t)),
         Assig(t1, t1 + mkInt(1), t2, t2 + mkInt(1))
       )
     )
 
-    val sgd =
+    val sgdProgram =
       StmtSmtList(
         List(
           NewVars(w1, w0, w2, w0),
@@ -82,7 +82,7 @@ object sgdExample {
     // by TH.7.should be auto derived from I_gen
 
     val premises: Seq[BoolExpr] =
-      Seq(lip_premise, lemmas.vecPremise, varProps) ++ i_prem
+      Seq(lipschez_premise, lemmas.vecPremise, varProps) ++ i_prem
 
     val premise = premises.reduce(_ && _)
     // previouse goal of p13 (1)
@@ -103,22 +103,27 @@ object sgdExample {
 
     // p13. rpe(sgd,|w1-w2|) <= 2L/n sum
     val (goalLhs, sideConds) = rpeF_inst(
-      sgd,
+      sgdProgram,
       (w1 - w2)
         .norm(),
-      List()
+      List() // initial side conditions
     )
 
     val sideCond = sideConds.reduce(_ && _)
 
     // sum 0 T - 1 a_j
     val goalRhs = sumF_Aj(0, T - 1)
+
     // println("sideCond :", sideCond.toString())
     // println("goal2lhs <= goal2rhs")
     // println(goal2lhs <= goal2rhs)
-    val finalGoal = (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond)
+
+    val finalGoal = (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown
+    // val finalGoal = (premise ==> sideCond) // unsat
+
 //    println("I_lhs : ", I_lhs.toString)
     // (premises, goalWithAxiom.neg)
+
     (premises, finalGoal.neg)
   }
 
