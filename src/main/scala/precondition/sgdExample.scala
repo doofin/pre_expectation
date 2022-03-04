@@ -5,11 +5,11 @@ import com.microsoft.z3
 import com.microsoft.z3._
 import precondition.syntax.smtAST._
 import precondition.z3api.{z3CheckApi, z3Utils}
-import cats.kernel.instances.TupleMonoidInstances
 
 import lemmas._
 import rpeFunction._
 import InfRealTuple.TupNum
+
 object sgdExample {
   import precondition.z3api.z3Utils._ // scala bug? can't move this outside
   private lazy val ctx = z3Utils.newZ3ctx()
@@ -27,7 +27,7 @@ object sgdExample {
       (2 to 6).map(x => mkIntConst(s"s$x")).toSet
 
 //    vars for loop invariant in p.13
-//   prev simplification:dim w = R instead of R^n
+//   previous simplification : dim w = 1,use R instead of R^n
     val w0 = newVec("w0")
     val t0 = mkIntConst("t0")
     val t0prop = t0 === mkInt(0)
@@ -38,6 +38,7 @@ object sgdExample {
     val s1 :: s2 :: Nil = mkSymList(2, "s", mkIntConst)
 
     val T: IntExpr = mkIntConst("T")
+    val T_prem = T >= 1
 
     val e1 :: e2 :: Nil = List(t1 > 0, t2 > 0)
 
@@ -82,7 +83,7 @@ object sgdExample {
     // by TH.7.should be auto derived from I_gen
 
     val premises: Seq[BoolExpr] =
-      Seq(lipschez_premise, lemmas.vecPremise, varProps) ++ i_prem
+      Seq(lipschez_premise, lemmas.vecPremise, varProps, T_prem) ++ i_prem
 
     val premise = premises.reduce(_ && _)
     // previouse goal of p13 (1)
@@ -112,13 +113,15 @@ object sgdExample {
     val sideCond = sideConds.reduce(_ && _)
 
     // sum 0 T - 1 a_j
-    val goalRhs = sumF_Aj(0, T - 1)
+    // val goalRhs = sumF_Aj(0, T - 1)
+    val goalRhs = sumF_Aj(0, T) //
 
     // println("sideCond :", sideCond.toString())
     // println("goal2lhs <= goal2rhs")
     // println(goal2lhs <= goal2rhs)
 
-    val finalGoal = (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown
+    // val finalGoal = (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown
+    val finalGoal = (premise ==> (mkReal(0) <= goalRhs)) && (premise ==> sideCond) // unknown
     // val finalGoal = (premise ==> sideCond) // unsat
 
 //    println("I_lhs : ", I_lhs.toString)
@@ -144,7 +147,7 @@ object sgdExample {
     val numProp = (beta > 0) && (n > 0) && (l_L >= 0)
     val (a_j, aj_prop) = aj_func(B = beta)
 
-    val (sumFuncInst, sumFunc_prop) = sum_func(a_j)
+    val (sumFuncInst, sumFunc_prop) = sum_func_ord(a_j)
 
     val sumTermAjF = { (startIdx: Expr[IntSort], endIdx: Expr[IntSort]) =>
       (mkReal(2) * l_L / mkInt2Real(n) * sumFuncInst(
@@ -212,7 +215,7 @@ object sgdExample {
   }
 
   // summation in p13  T: Int
-  // smt unknown,take 15min
+  // smt check: unknown,take 15min
   def aj_func(B: RealExpr) = {
 
     val aj: FuncDecl[RealSort] = mkFuncDecl(
@@ -221,10 +224,8 @@ object sgdExample {
       mkRealSort()
     )
     val t: Expr[IntSort] = mkIntConst("t")
-    // val bt = mkRealConst("beta")
-    // val btq = bt > mkReal(0)
     // properties for array a_j :  0<=a_t<=2/B,p12
-    val aj_prop = (mkReal(0) < aj(t)) && (aj(t) < (mkReal(2) / B))
+    val aj_prop = (mkReal(0) <= aj(t)) && (aj(t) <= (mkReal(2) / B))
     // 2 th premise,take long time.fixed
     val qtf = forall_z3(Array(t), aj_prop)
     (aj, Seq(qtf))
@@ -239,7 +240,7 @@ object sgdExample {
       ctx,
       Seq(propWithPrem),
       List(Status.UNSATISFIABLE, Status.UNKNOWN),
-      "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
+      "rpe(sgd,|w1-w2|) <= 2L/n sum", // "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
       premise = prem,
       printSmtStr = false
     )

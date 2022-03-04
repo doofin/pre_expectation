@@ -144,33 +144,71 @@ object lemmas {
 
     I_lhs
   }
+
   //  sum function in p.13
 // sum_aj : int^2=>real,sum over a_j from i to j
 // (smt result:,UNKNOWN)
-
-  def sum_func(aj: FuncDecl[RealSort]) = {
-    /* val sum_f_params: Array[Sort] = Array(mkIntSort(), mkIntSort(), mkIntSort()) */
-//    sum from i to n.need to change 3rd param to array?
+// problem:unwrapping might be infinite
+  def sum_func_dec(aj: FuncDecl[RealSort]) = {
     val sum_f = mkFuncDecl(
       "sum",
       Array(mkIntSort(), mkIntSort()): Array[Sort],
       mkRealSort()
     )
     val i: Expr[IntSort] = mkIntConst("i")
-    val n: Expr[IntSort] = mkIntConst("n")
+    val j: Expr[IntSort] = mkIntConst("j")
 
     import ImplicitConv.int2mkint
-    val numProp = i >= 0 && (n >= 0)
+    val numProp = i >= 0 && (j >= 0)
 //    use implicits for mkInt
     import ImplicitConv.int2mkint
     //  sum i j x(i) = (sum i+1 j x(i+1)) + x(i)
-    // val prop = sum_f(i, n, aj(i)) === (sum_f(i + 1, n, aj(i + 1)) + aj(i))
-    // trick: encode a_j inside sum
-    //  sum i j = (sum i+1 j) + x(i)
-    val prop1 = i <= n ==> (sum_f(i, n) === (sum_f(i + 1, n) + aj(i)))
-    val prop2 = i > n ==> (sum_f(i, n) === 0)
 
-    val qtf = forall_z3(Array(i, n), prop1 && prop2)
-    (sum_f, numProp && qtf)
+    // 1:sum = sum i-1 ,2:sum : make it weaker 3.limited function
+    // increasing:  sum i j = (sum i+1 j) + x(i)
+    // i <= j ==> (sum_f(i, j) === (sum_f(i, j - 1) + aj(j)))
+    val prop1 = i <= j ==> ((sum_f(i, j) === (sum_f(i + 1, j) + aj(i)) && (sum_f(i + 1, j) >= 0)))
+    val prop2 = i > j ==> (sum_f(i, j) === 0)
+
+    val qtf = forall_z3(Array(i, j), prop1 && prop2)
+    // (sum_f, numProp && qtf)
+
+    // decreasing:  sum i j = (sum i j-1) + x(j) = x 0 ... x j-2 x j-1 x j
+    val propDec1 =
+      i <= j ==> (sum_f(i, j) === (sum_f(i, j - 1) + aj(j)))
+    val propDec2 = i > j ==> (sum_f(i, j) === 0)
+
+    val qtfDec = forall_z3(Array(i, j), propDec1 && propDec2)
+    // (sum_f, numProp && qtf)
+    (sum_f, numProp && qtfDec)
+
+  }
+
+  // only ordering property
+  def sum_func_ord(aj: FuncDecl[RealSort]) = {
+    val sum_f = mkFuncDecl(
+      "sum",
+      Array(mkIntSort(), mkIntSort()): Array[Sort],
+      mkRealSort()
+    )
+    val i: Expr[IntSort] = mkIntConst("i")
+    val j: Expr[IntSort] = mkIntConst("j")
+
+    import ImplicitConv.int2mkint
+    val numProp = i >= 0 && (j >= 0)
+//    use implicits for mkInt
+    import ImplicitConv.int2mkint
+
+    // 1:sum = sum i-1 ,2:sum : make it weaker 3.limited function
+    // make it weaker: a i >=0,sum i j >0 -> sum i+1 j >0
+    // need a way to update upper bound
+    val prop = (i <= j && aj(j) >= 0 && (sum_f(i, j - 1) >= 0)) ==> sum_f(i, j) >= sum_f(i, j - 1)
+
+    val prop2 = i > j ==> (sum_f(i, j) === 0)
+
+    val qtfDec = forall_z3(Array(i, j), prop && prop2)
+    // (sum_f, numProp && qtf)
+    (sum_f, numProp && qtfDec)
+
   }
 }

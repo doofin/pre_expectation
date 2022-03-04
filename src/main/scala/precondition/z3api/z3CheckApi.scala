@@ -50,7 +50,7 @@ object z3CheckApi {
   ) = {
     // println("checkBoolCtx")
     val r = check(ctx, xs, printSAT, printSmtStr = printSmtStr)
-    println(s"goal: ${goals} , result: ${r} , description : " + goalMsg)
+    println(s"result: ${r} , goal: ${goals}  , description : " + goalMsg)
     val msg = if (goals contains r) "goal achieved !" else s"goal failed ! result ${r} != ${goals}"
     println(msg)
 
@@ -79,12 +79,11 @@ object z3CheckApi {
       ctx: Context,
       fs: Seq[BoolExpr],
       printSAT: Boolean = false,
-      printSmtStr: Boolean = true
+      printSmtStr: Boolean = true,
+      timeout: Int = 2500000
   ) = {
     val s = ctx.mkSolver
     val p = ctx.mkParams()
-    /* Also tried p.Add("timeout", 1), p.Add(":timeout", 1), neither worked. */
-    val timeout = 5000
     p.add("timeout", timeout)
     s.setParameters(p)
     fs foreach (f => s.add(f))
