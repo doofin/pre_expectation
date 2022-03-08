@@ -145,10 +145,14 @@ object lemmas {
     I_lhs
   }
 
+  // deal with unknown SMT result for sum:
+  // problem:unwrapping might be infinite
+
+  // 1:sum = sum i-1 ,2:sum : make it weaker 3.limited function
   //  sum function in p.13
 // sum_aj : int^2=>real,sum over a_j from i to j
 // (smt result:,UNKNOWN)
-// problem:unwrapping might be infinite
+// decreasing:  sum i j = (sum i j-1) + x(j) = x 0 ... x j-2 x j-1 x j
   def sum_func_dec(aj: FuncDecl[RealSort]) = {
     val sum_f = mkFuncDecl(
       "sum",
@@ -167,10 +171,11 @@ object lemmas {
     // 1:sum = sum i-1 ,2:sum : make it weaker 3.limited function
     // increasing:  sum i j = (sum i+1 j) + x(i)
     // i <= j ==> (sum_f(i, j) === (sum_f(i, j - 1) + aj(j)))
-    val prop1 = i <= j ==> ((sum_f(i, j) === (sum_f(i + 1, j) + aj(i)) && (sum_f(i + 1, j) >= 0)))
-    val prop2 = i > j ==> (sum_f(i, j) === 0)
+    
+    // val prop1 = i <= j ==> ((sum_f(i, j) === (sum_f(i + 1, j) + aj(i)) && (sum_f(i + 1, j) >= 0)))
+    // val prop2 = i > j ==> (sum_f(i, j) === 0)
+    // val qtf = forall_z3(Array(i, j), prop1 && prop2)
 
-    val qtf = forall_z3(Array(i, j), prop1 && prop2)
     // (sum_f, numProp && qtf)
 
     // decreasing:  sum i j = (sum i j-1) + x(j) = x 0 ... x j-2 x j-1 x j
@@ -199,8 +204,7 @@ object lemmas {
 //    use implicits for mkInt
     import ImplicitConv.int2mkint
 
-    // 1:sum = sum i-1 ,2:sum : make it weaker 3.limited function
-    // make it weaker: a i >=0,sum i j >0 -> sum i+1 j >0
+    // widening: make the result weaker: a i >=0,sum i j >0 -> sum i+1 j >0
     // need a way to update upper bound
     val prop = (i <= j && aj(j) >= 0 && (sum_f(i, j - 1) >= 0)) ==> sum_f(i, j) >= sum_f(i, j - 1)
 
