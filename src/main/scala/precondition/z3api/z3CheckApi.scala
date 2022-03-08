@@ -46,17 +46,18 @@ object z3CheckApi {
       goalMsg: String = "",
       printSAT: Boolean = false,
       printSmtStr: Boolean = true,
-      premise: Seq[BoolExpr] = Seq()
+      premise: Seq[BoolExpr] = Seq(),
+      timeout: Int = 60000
   ) = {
     // println("checkBoolCtx")
-    val r = check(ctx, xs, printSAT, printSmtStr = printSmtStr)
+    val r = check(ctx, xs, printSAT, printSmtStr = printSmtStr, timeout = timeout)
     println(s"result: ${r} , goal: ${goals}  , description : " + goalMsg)
     val msg = if (goals contains r) "goal achieved !" else s"goal failed ! result ${r} != ${goals}"
     println(msg)
 
     if (premise.nonEmpty) {
       println("doing sanity check on premise (goal: premise is sat or unknown)")
-      val r = check(ctx, premise, printSAT, printSmtStr = printSmtStr)
+      val r = check(ctx, premise, printSAT, printSmtStr = printSmtStr, timeout = timeout)
       val msg =
         if (r != Status.UNSATISFIABLE) " premise is consistent"
         else " premise is bad"

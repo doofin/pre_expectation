@@ -121,6 +121,7 @@ object sgdExample {
     // println(goal2lhs <= goal2rhs)
 
     // val finalGoal = (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown
+    // placeholder goal
     val finalGoal = (premise ==> (mkReal(0) <= goalRhs)) && (premise ==> sideCond) // unknown
     // val finalGoal = (premise ==> sideCond) // unsat
 
@@ -168,7 +169,7 @@ object sgdExample {
     ) *
       ((w(0) - w(1)).norm() + `2L/n*SumAj`))
 
-    (tup, sumTermAjF, Seq(numProp) ++ aj_prop ++ Seq(sumFunc_prop))
+    (tup, sumTermAjF, Seq(numProp, aj_prop, sumFunc_prop))
   }
 
   // delta loss function for vector W
@@ -228,7 +229,7 @@ object sgdExample {
     val aj_prop = (mkReal(0) <= aj(t)) && (aj(t) <= (mkReal(2) / B))
     // 2 th premise,take long time.fixed
     val qtf = forall_z3(Array(t), aj_prop)
-    (aj, Seq(qtf))
+    (aj, qtf)
   }
 
   def test = {
@@ -239,7 +240,7 @@ object sgdExample {
     z3CheckApi.checkBoolExpr(
       ctx,
       Seq(propWithPrem),
-      List(Status.UNSATISFIABLE, Status.UNKNOWN),
+      List(Status.UNSATISFIABLE), // Status.UNKNOWN
       "rpe(sgd,|w1-w2|) <= 2L/n sum", // "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
       premise = prem,
       printSmtStr = false
