@@ -113,16 +113,19 @@ object sgdExample {
     val sideCond = sideConds.reduce(_ && _)
 
     // sum 0 T - 1 a_j
-    // val goalRhs = sumF_Aj(0, T - 1)
-    val goalRhs = sumF_Aj(0, T) //
+    val goalRhs = sumF_Aj(0, T - 1)
+    // val goalRhs = sumF_Aj(0, T) //
 
     // println("sideCond :", sideCond.toString())
     // println("goal2lhs <= goal2rhs")
     // println(goal2lhs <= goal2rhs)
 
+    // val finalGoal = (premise ==> (goalRhs <= goalRhs)) && (premise ==> sideCond) // unknown
+    val finalGoal = (premise ==> ((w1 - w1).norm() === 0)) && (premise ==> sideCond) // unknown
+    // val finalGoal = (premise ==> ((w1 === w2))) && (premise ==> sideCond) // unknown
     // val finalGoal = (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown
     // placeholder goal
-    val finalGoal = (premise ==> (mkReal(0) <= goalRhs)) && (premise ==> sideCond) // unknown
+    // val finalGoal = (premise ==> (mkReal(0) <= goalRhs)) && (premise ==> sideCond) // unknown
     // val finalGoal = (premise ==> sideCond) // unsat
 
 //    println("I_lhs : ", I_lhs.toString)
@@ -148,7 +151,7 @@ object sgdExample {
     val numProp = (beta > 0) && (n > 0) && (l_L >= 0)
     val (a_j, aj_prop) = aj_func(B = beta)
 
-    val (sumFuncInst, sumFunc_prop) = sum_func_ord(a_j)
+    val (sumFuncInst, sumFunc_prop) = sum_func_ord2(a_j)
 
     val sumTermAjF = { (startIdx: Expr[IntSort], endIdx: Expr[IntSort]) =>
       (mkReal(2) * l_L / mkInt2Real(n) * sumFuncInst(

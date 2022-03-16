@@ -14,7 +14,6 @@ object lemmas {
   type VecType = UninterpretedSort
   type binOpType[a] = (a, a) => a
   val vecSort: VecType = mkUninterpretedSort("vec")
-
   // nth component of vector,but n is not specified. v->real
   // val vec_nth: FuncDecl[RealSort] =
   // mkFuncDecl("vec_nth", Array(vecSort): Array[Sort], mkRealSort())
@@ -31,8 +30,7 @@ object lemmas {
   val (vec_scalaMul, vec_scalaMulP) = scala_mul_vec()
   val (vec_norm, vec_normP) = norm_vec_gen(vec_add, vec_scalaMul)
 
-  val vecPremise = vec_addP && vec_minusP && vec_normP && vec_scalaMulP
-
+  // val vec_minusP2 = 1
   implicit class vecOps(v: Expr[VecType]) {
     def +(v2: Expr[VecType]) = vec_add(v, v2)
     def -(v2: Expr[VecType]) = vec_minus(v, v2)
@@ -40,12 +38,16 @@ object lemmas {
     def norm(): Expr[RealSort] = vec_norm(v)
   }
 
+  val vecPremise = vec_addP && vec_minusP && vec_normP && vec_scalaMulP
+
   def newVec(name: String = "x"): Expr[VecType] = mkConst(name, vecSort)
 
   /**
    * generate norm operator for vec. return: normF : vec -> real
    */
-  def norm_vec_gen(vec_add: FuncDecl[VecType], scalaMul: FuncDecl[VecType]) = {
+  def norm_vec_gen(binOp: FuncDecl[VecType], scalaMul: FuncDecl[VecType]) = {
+
+    val len: Int = 3
     val normF =
       mkFuncDecl(
         "norm_vec",
@@ -64,7 +66,7 @@ object lemmas {
     val p2 = {
       val v = newVec("v1")
       val w = newVec("w")
-      val prop = normF(vec_add(v, w)) <= normF(v) + normF(w)
+      val prop = normF(binOp(v, w)) <= normF(v) + normF(w)
       forall_z3(Array(v), prop)
     }
 
@@ -74,8 +76,24 @@ object lemmas {
       val prop = normF(scalaMul(a, v)) === (a.normW() * normF(v))
       forall_z3(Array(v), prop)
     }
+    val zeroVec = newVec("zero")
+    val zeroVecP = normF(zeroVec) === mkInt(0)
 
-    (normF, p1 && p2 && p3)
+    val p4 = {
+      val v = newVec("v1")
+      val w = newVec("w")
+      // val prop = (v === w) ==> (normF(binOp(v, w)) === mkInt(0))
+      val prop = (v === w) ==> (binOp(v, w) === zeroVec)
+      val prop2 = (binOp(v, w) === zeroVec) ==> (v === w)
+      forall_z3(Array(v, w), prop && prop2)
+    }
+    val pFinDim = {
+      val v = newVec("v")
+      val f = mkFuncDecl("findim", Array(vecSort): Array[Sort], mkIntSort())
+      val prop = f(v) === mkInt(len)
+      forall_z3(Array(v), prop)
+    }
+    (normF, p1 && p2 && p3 && pFinDim && p4 && zeroVecP)
   }
 
   /* scala multiply vector */
@@ -171,8 +189,9 @@ object lemmas {
     // 1:sum = sum i-1 ,2:sum : make it weaker 3.limited function
     // increasing:  sum i j = (sum i+1 j) + x(i)
     // i <= j ==> (sum_f(i, j) === (sum_f(i, j - 1) + aj(j)))
-    
-    // val prop1 = i <= j ==> ((sum_f(i, j) === (sum_f(i + 1, j) + aj(i)) && (sum_f(i + 1, j) >= 0)))
+
+    /* val prop1 = i <= j ==> ((sum_f(i, j) === (sum_f(i + 1, j) + aj(i)) && (sum_f(i + 1, j) >=
+     * 0))) */
     // val prop2 = i > j ==> (sum_f(i, j) === 0)
     // val qtf = forall_z3(Array(i, j), prop1 && prop2)
 
@@ -207,6 +226,32 @@ object lemmas {
     // widening: make the result weaker: a i >=0,sum i j >0 -> sum i+1 j >0
     // need a way to update upper bound
     val prop = (i <= j && aj(j) >= 0 && (sum_f(i, j - 1) >= 0)) ==> sum_f(i, j) >= sum_f(i, j - 1)
+
+    val prop2 = i > j ==> (sum_f(i, j) === 0)
+
+    val qtfDec = forall_z3(Array(i, j), prop && prop2)
+    // (sum_f, numProp && qtf)
+    (sum_f, numProp && qtfDec)
+
+  }
+
+  def sum_func_ord2(aj: FuncDecl[RealSort]) = {
+    val sum_f = mkFuncDecl(
+      "sum",
+      Array(mkIntSort(), mkIntSort()): Array[Sort],
+      mkRealSort()
+    )
+    val i: Expr[IntSort] = mkIntConst("i")
+    val j: Expr[IntSort] = mkIntConst("j")
+
+    import ImplicitConv.int2mkint
+    val numProp = i >= 0 && (j >= 0)
+//    use implicits for mkInt
+    import ImplicitConv.int2mkint
+
+    // widening: make the result weaker: a i >=0,sum i j >0 -> sum i+1 j >0
+    // need a way to update upper bound
+    val prop = (i <= j) ==> ((sum_f(i, j) >= 0) && (sum_f(i, j) === sum_f(i + 1, j) + aj(i)))
 
     val prop2 = i > j ==> (sum_f(i, j) === 0)
 
