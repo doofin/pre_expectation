@@ -13,6 +13,7 @@ object lemmas {
 
   type VecType = UninterpretedSort
   type binOpType[a] = (a, a) => a
+  type PairType[a] = (a, a)
   val vecSort: VecType = mkUninterpretedSort("vec")
   // nth component of vector,but n is not specified. v->real
   // val vec_nth: FuncDecl[RealSort] =
@@ -26,9 +27,29 @@ object lemmas {
     )
 
   val (vec_add, vec_addP) = vec_binOp(_ + _, "+")
-  val (vec_minus, vec_minusP) = vec_binOp(_ - _, "-")
   val (vec_scalaMul, vec_scalaMulP) = scala_mul_vec()
-  val (vec_norm, vec_normP) = norm_vec_gen(vec_add, vec_scalaMul)
+
+  // norm for vec
+  val (vec_norm: FuncDecl[RealSort], zeroVec, vec_normP) = norm_vec_gen(vec_add, vec_scalaMul)
+  // norm of 0 is 0
+  // val zeroVec = newVec("zero")
+  // val zeroVecP = vec_norm(zeroVec) === mkReal(0)
+
+  /*
+to make ( w1 - w1).norm() === 0 work :
+
+   vec_axioms = And(
+  vec_norm(vec_zero()) == 0,
+  ForAll(v, (vec_norm(v) == 0) == (v == vec_zero()) ),
+  ForAll([v,w], (v == w) == (vec_minus(v,w) == vec_zero()))
+  )
+   */
+  val (vec_minus, vec_minusP) =
+    vec_binOp(
+      _ - _,
+      "-",
+      { case (a, b, minus) => (a === b) === (minus(a, b) === zeroVec) }
+    )
 
   // val vec_minusP2 = 1
   implicit class vecOps(v: Expr[VecType]) {
@@ -47,8 +68,8 @@ object lemmas {
    */
   def norm_vec_gen(binOp: FuncDecl[VecType], scalaMul: FuncDecl[VecType]) = {
 
-    val len: Int = 3
-    val normF =
+    // val len: Int = 3
+    val normF: FuncDecl[RealSort] =
       mkFuncDecl(
         "norm_vec",
         Array(vecSort): Array[Sort],
@@ -76,24 +97,32 @@ object lemmas {
       val prop = normF(scalaMul(a, v)) === (a.normW() * normF(v))
       forall_z3(Array(v), prop)
     }
-    val zeroVec = newVec("zero")
-    val zeroVecP = normF(zeroVec) === mkInt(0)
 
-    val p4 = {
-      val v = newVec("v1")
-      val w = newVec("w")
-      // val prop = (v === w) ==> (normF(binOp(v, w)) === mkInt(0))
-      val prop = (v === w) ==> (binOp(v, w) === zeroVec)
-      val prop2 = (binOp(v, w) === zeroVec) ==> (v === w)
-      forall_z3(Array(v, w), prop && prop2)
-    }
-    val pFinDim = {
-      val v = newVec("v")
-      val f = mkFuncDecl("findim", Array(vecSort): Array[Sort], mkIntSort())
-      val prop = f(v) === mkInt(len)
+    // val p4 = {
+    //   val v = newVec("v1")
+    //   val w = newVec("w")
+    //   // val prop = (v === w) ==> (normF(binOp(v, w)) === mkInt(0))
+    //   val prop = (v === w) ==> (binOp(v, w) === zeroVec)
+    //   val prop2 = (binOp(v, w) === zeroVec) ==> (v === w)
+    //   forall_z3(Array(v, w), prop && prop2)
+    // }
+
+    // val pFinDim = {
+    //   val v = newVec("v")
+    //   val f = mkFuncDecl("findim", Array(vecSort): Array[Sort], mkIntSort())
+    //   val prop = f(v) === mkInt(len)
+    //   forall_z3(Array(v), prop)
+    // }
+    val zeroVec = newVec("zero")
+    val zeroVecP = normF(zeroVec) === mkReal(0)
+
+    val p7 = {
+      val v = newVec("v7")
+      val prop = (normF(v) === mkReal(0)) === (v === zeroVec)
       forall_z3(Array(v), prop)
     }
-    (normF, p1 && p2 && p3 && pFinDim && p4 && zeroVecP)
+    // && pFinDim && p4
+    (normF, zeroVec, p1 && p2 && p3 && p7 && zeroVecP)
   }
 
   /* scala multiply vector */
@@ -120,18 +149,21 @@ object lemmas {
    * lift operation on real to vector axiom : distributive. for example,minus: a[i]-b[i]=(a-b)[i]?
    */
   def vec_binOp(
-      binReal: binOpType[Expr[RealSort]],
-      name: String
+      binOpReal: binOpType[Expr[RealSort]],
+      name: String,
+      binOpProp: (Expr[VecType], Expr[VecType], FuncDecl[VecType]) => BoolExpr = { case x =>
+        mkTrue()
+      }
   ) = {
     val a = mkConst("a", vecSort)
     val b = mkConst("b", vecSort)
     val i = mkIntConst("i")
     val binOp: FuncDecl[VecType] =
-      mkFuncDecl("binOp_" + name, Array(vecSort, vecSort): Array[Sort], vecSort)
+      mkFuncDecl("vec_binOp_" + name, Array(vecSort, vecSort): Array[Sort], vecSort)
     // a[i]-b[i]=(a-b)[i]
     val prop =
-      binReal(vec_nth(i, a), vec_nth(i, b)) === vec_nth(i, binOp(a, b))
-    val qtf = forall_z3(Array(a, b), prop)
+      binOpReal(vec_nth(i, a), vec_nth(i, b)) === vec_nth(i, binOp(a, b))
+    val qtf = forall_z3(Array(a, b), prop && binOpProp(a, b, binOp))
     (binOp, qtf)
   }
 
