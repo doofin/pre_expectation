@@ -120,10 +120,10 @@ object sgdExample {
     // println("goal2lhs <= goal2rhs")
     // println(goal2lhs <= goal2rhs)
 
-    // val finalGoal = (premise ==> (goalRhs <= goalRhs)) && (premise ==> sideCond) // unknown
-    val finalGoal = (premise ==> ((w1 - w1).norm() === 0)) && (premise ==> sideCond) // unknown
+    // val finalGoal = (premise ==> ((w1 - w1).norm() === 0)) && (premise ==> sideCond) // ok
+    // val finalGoal = (premise ==> (goalRhs <= goalRhs)) && (premise ==> sideCond) // ok
     // val finalGoal = (premise ==> ((w1 === w2))) && (premise ==> sideCond) // unknown
-    // val finalGoal = (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown
+    val finalGoal = (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown
     // placeholder goal
     // val finalGoal = (premise ==> (mkReal(0) <= goalRhs)) && (premise ==> sideCond) // unknown
     // val finalGoal = (premise ==> sideCond) // unsat
