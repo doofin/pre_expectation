@@ -29,8 +29,9 @@ object sgdExample {
 //    vars for loop invariant in p.13
 //   previous simplification : dim w = 1,use R instead of R^n
     val w0 = newVec("w0")
-    val t0 = mkIntConst("t0")
-    val t0prop = t0 === mkInt(0)
+    // val t0 = mkIntConst("t0")
+    val t0 = mkInt(0)
+    // val t0prop = t0 === mkInt(0)
     val (w1, w2) = (newVec("w1"), newVec("w2"))
 
     val (g1, g2) = (newVec("g1"), newVec("g2"))
@@ -46,7 +47,7 @@ object sgdExample {
     val a_t = mkRealConst("a_t")
     val atPrpo = a_t > mkReal(0)
 
-    val varProps = atPrpo && t0prop
+    val varProps = atPrpo //&& t0prop
     // delta L function with Lipschitz property
     val (deltaL, lipschez_premise) = vec_deltaL(1)
 
@@ -78,6 +79,10 @@ object sgdExample {
         )
       )
 
+    val sgdProgram1 =
+      StmtSmtList(
+        List(NewVars(w1, w0, w2, w0), NewVars(t1, t0, t2, t0))
+      )
     import ImplicitConv._
 
     // by TH.7.should be auto derived from I_gen
@@ -110,7 +115,7 @@ object sgdExample {
       List() // initial side conditions
     )
 
-    val sideCond = sideConds.reduce(_ && _)
+    val sideCond = if (sideConds.nonEmpty) sideConds.reduce(_ && _) else mkTrue()
 
     // sum 0 T - 1 a_j
     val goalRhs = sumF_Aj(0, T - 1)

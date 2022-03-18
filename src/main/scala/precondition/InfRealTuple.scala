@@ -37,11 +37,18 @@ object InfRealTuple {
     val isInf: BoolExpr = bool1.isTrueB
 //    private val tup_inf = inj(mkReal(1, 1), mkTrue())
 
-    def mkBinaryOp(op: (RealExpr, RealExpr) => Expr[RealSort])(oth: TupNum) = {
+    def mkBinaryOp(
+        op: (RealExpr, RealExpr) => Expr[RealSort],
+        dominateCond: RealExpr => BoolExpr = { x => mkFalse() }
+    )(
+        oth: TupNum
+    ) = {
       val (real2: RealExpr, bool2: BoolExpr) =
         (projReal(oth.tup), projBool(oth.tup))
       val notInf = inj_InfReal(op.apply(real1, real2), mkFalse())
-      val r = mkITE(isInf, tup, mkITE(oth.isInf, oth.tup, notInf))
+      val rInf = mkITE(isInf, tup, mkITE(oth.isInf, oth.tup, notInf))
+// to make inf
+      val r = mkITE(dominateCond(real1), tup, mkITE(dominateCond(real2), oth.tup, rInf))
       TupNum(r)
     }
 
@@ -49,7 +56,7 @@ object InfRealTuple {
 
     def - = mkBinaryOp(_ - _) _
 
-    def * = mkBinaryOp(_ * _) _
+    def * = mkBinaryOp(_ * _, (x => x === mkReal(0))) _
 
     def / = mkBinaryOp(_ / _) _
 
