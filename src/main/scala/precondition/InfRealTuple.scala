@@ -28,12 +28,12 @@ object InfRealTuple {
 
   lazy val projReal :: projBool :: Nil = prjArr_InfReal.toList
 
-  case class TupNum(tup: Expr[TupleSort]) {
+  case class TupNum(thisTup: Expr[TupleSort]) {
     import thisCtx._
 //    import z3Utils._
 //    import ctx._
     val (real1: RealExpr, bool1: Expr[BoolSort]) =
-      (projReal(tup), projBool(tup))
+      (projReal(thisTup), projBool(thisTup))
     val isInf: BoolExpr = bool1.isTrueB
 //    private val tup_inf = inj(mkReal(1, 1), mkTrue())
 
@@ -44,27 +44,38 @@ object InfRealTuple {
         oth: TupNum
     ) = {
       val (real2: RealExpr, bool2: BoolExpr) =
-        (projReal(oth.tup), projBool(oth.tup))
+        (projReal(oth.thisTup), projBool(oth.thisTup))
       val notInf = inj_InfReal(op.apply(real1, real2), mkFalse())
-      val rInf = mkITE(isInf, tup, mkITE(oth.isInf, oth.tup, notInf))
-// to make inf
-      val r = mkITE(dominateCond(real1), tup, mkITE(dominateCond(real2), oth.tup, rInf))
-      TupNum(r)
+      val rInf = mkITE(isInf, thisTup, mkITE(oth.isInf, oth.thisTup, notInf))
+      //  make inf * 0 = 0
+      import ImplicitConv._
+
+      val r =
+        mkITE(
+          dominateCond(real1),
+          TupNum(real1).thisTup,
+          mkITE(dominateCond(real2), TupNum(real2).thisTup, rInf)
+        )
+      // TupNum(rInf) // the old one ,sidecond ok
+      TupNum(r) // this breaks sidecond!
     }
 
     def + = mkBinaryOp(_ + _) _
 
     def - = mkBinaryOp(_ - _) _
 
-    def * = mkBinaryOp(_ * _, (x => x === mkReal(0))) _
+    def * = mkBinaryOp(_ * _, (x => x === mkReal(0))) _ // this makes sideCond unk
+
+    // def * = mkBinaryOp(_ * _) _
 
     def / = mkBinaryOp(_ / _) _
+    def ===(oth: TupNum) = { thisTup === oth.thisTup }
 
     /** if oth are pos inf,then true if both are not inf,compare real part
       */
     def <=(oth: TupNum) = {
       val (real2: RealExpr, bool2: BoolExpr) =
-        (projReal(oth.tup), projBool(oth.tup))
+        (projReal(oth.thisTup), projBool(oth.thisTup))
 
       val isNotInf = bool1.isFalseB || bool2.isFalseB
       val real1_lt_real2 = real1 <= real2
@@ -74,7 +85,7 @@ object InfRealTuple {
     }
 
     def normW() = {
-      TupNum(mkITE(isInf, tup, TupNum(real1.normW() -- false).tup))
+      TupNum(mkITE(isInf, thisTup, TupNum(real1.normW() -- false).thisTup))
     }
 
   }

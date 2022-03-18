@@ -36,11 +36,11 @@ object rpeFunction {
       case NewVars(x1, e1, x2, e2) =>
         // println("NewVars(x1, e1, x2, e2)")
         // println(e1, e2)
-        (E.copy(tup = E.tup.substitute(x1, e1).substitute(x2, e2)), sideCond)
+        (E.copy(thisTup = E.thisTup.substitute(x1, e1).substitute(x2, e2)), sideCond)
       case SkipSmt => (E, sideCond)
       // case Assig(x, e)     => E.substitute(x, e)
       case Assig(x1, e1, x2, e2) =>
-        (E.copy(tup = E.tup.substitute(x1, e1).substitute(x2, e2)), sideCond)
+        (E.copy(thisTup = E.thisTup.substitute(x1, e1).substitute(x2, e2)), sideCond)
 
       case AssigRand(x1, x2, d) =>
         /* use the trick from bottom of p.10,which only works if rpe is in left hand side, due to
@@ -49,7 +49,7 @@ object rpeFunction {
          * distribution D */
         // (p.10 Proposition 6)
         val sum1 = d
-          .map(v => E.copy(tup = E.tup.substitute(x1, v).substitute(x2, f_bij(v))) // .substitute(x2, r)
+          .map(v => E.copy(thisTup = E.thisTup.substitute(x1, v).substitute(x2, f_bij(v))) // .substitute(x2, r)
           )
           .reduce(_ + _)
         import ImplicitConv._

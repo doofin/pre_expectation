@@ -81,7 +81,15 @@ object sgdExample {
 
     val sgdProgram1 =
       StmtSmtList(
-        List(NewVars(w1, w0, w2, w0), NewVars(t1, t0, t2, t0))
+        List(
+          // NewVars(w1, w0, w2, w0),
+          // NewVars(t1, t0, t2, t0),
+          WhileSmt(
+            invariant,
+            (e1, e2),
+            whileBd_relational
+          )
+        )
       )
     import ImplicitConv._
 
@@ -104,8 +112,7 @@ object sgdExample {
     //     .norm()
     // )
 
-    // val goal = I_lhs <= invariant
-    // val goalWithAxiom = premise ==> goal
+    // val goalOld = premise ==> (I_lhs <= invariant)
 
     // p13. rpe(sgd,|w1-w2|) <= 2L/n sum
     val (goalLhs, sideConds) = rpeF_inst(
@@ -128,14 +135,15 @@ object sgdExample {
     // val finalGoal = (premise ==> ((w1 - w1).norm() === 0)) && (premise ==> sideCond) // ok
     // val finalGoal = (premise ==> (goalRhs <= goalRhs)) && (premise ==> sideCond) // ok
     // val finalGoal = (premise ==> ((w1 === w2))) && (premise ==> sideCond) // unknown
-    val finalGoal = (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown
+    // val finalGoal =
+    //   (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown for sgd,ok for sgd1
+    val finalGoal = (premise ==> sideCond) // unsat,unk after changes of infty*0
     // placeholder goal
     // val finalGoal = (premise ==> (mkReal(0) <= goalRhs)) && (premise ==> sideCond) // unknown
-    // val finalGoal = (premise ==> sideCond) // unsat
 
 //    println("I_lhs : ", I_lhs.toString)
-    // (premises, goalWithAxiom.neg)
 
+    // (premises, goalOld.neg)
     (premises, finalGoal.neg)
   }
 
@@ -172,8 +180,8 @@ object sgdExample {
     import ImplicitConv._
     import InfRealTuple._
 //    terms I in p.13
-    val tup = TupNum(iverB(t(0) !== t(1)) -- false) * infty_+ + (TupNum(
-      iverB(t(0) === t(1)) -- false
+    val tup = TupNum(iverB(t(0) !== t(1))) * infty_+ + (TupNum(
+      iverB(t(0) === t(1))
     ) *
       ((w(0) - w(1)).norm() + `2L/n*SumAj`))
 

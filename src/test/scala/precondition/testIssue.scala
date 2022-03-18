@@ -7,6 +7,7 @@ import precondition.z3api.z3Utils
 class testIssue extends AnyFunSuite {
   test("smt_z3") {
 //    smt_z3.run
-    issues.sumIsUnknown()
+    // issues.sumIsUnknown() // ok
+    issues.zeroMulInf2()
   }
 }
