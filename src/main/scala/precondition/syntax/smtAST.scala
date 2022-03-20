@@ -35,10 +35,15 @@ object smtAST {
     def append(x: StmtSmt) = StmtSmtList(xs :+ x)
   }
 
-  case class WhileSmt(
+  case class WhileSmtTup(
       annotation: InfRealTuple.TupNum,
       cond: (BoolExpr, BoolExpr),
       xs: StmtSmtList
   ) extends StmtSmt
 
+  case class WhileSmt(
+      annotation: Expr[RealSort],
+      cond: (BoolExpr, BoolExpr),
+      xs: StmtSmtList
+  ) extends StmtSmt
 }

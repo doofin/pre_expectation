@@ -13,7 +13,7 @@ object InfRealTuple {
   // intsort,bool
   import ImplicitConv.tup2inj
 
-  val infty_+ = TupNum(thisCtx.mkReal(1) -- true)
+  val inftyTup_+ = TupNum(thisCtx.mkReal(1) -- true)
 
   lazy val proj @ (tupTp_InfReal, inj_InfReal, prjArr_InfReal) = {
     import thisCtx._
@@ -56,7 +56,7 @@ object InfRealTuple {
           TupNum(real1).thisTup,
           mkITE(dominateCond(real2), TupNum(real2).thisTup, rInf)
         )
-      // TupNum(rInf) // the old one ,sidecond ok
+      // TupNum(rInf) // the old one ,sidecond ok,but not correct
       TupNum(r) // this breaks sidecond!
     }
 

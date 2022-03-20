@@ -1,6 +1,6 @@
 package precondition
 
-import sgdExample._
+import sgdExampleTup._
 import lemmas._
 import z3api.z3Utils._
 import InfRealTuple._
@@ -31,7 +31,7 @@ object issues {
   // ok, unsat
   def zeroMulInf() = {
     import ImplicitConv._
-    val qtf = TupNum(mkReal(0)) * InfRealTuple.infty_+ === TupNum(mkReal(0))
+    val qtf = TupNum(mkReal(0)) * InfRealTuple.inftyTup_+ === TupNum(mkReal(0))
     z3api.z3CheckApi.checkBoolExpr(
       InfRealTuple.thisCtx,
       Seq(qtf.neg),
@@ -46,7 +46,7 @@ object issues {
     val t0 = mkInt(0)
 
     // if cond true then 1 else 0. cond is false,so iverB is 0
-    val q2 = TupNum(iverB(t0 !== t0)) * infty_+ === TupNum(mkReal(0))
+    val q2 = TupNum(iverB(t0 !== t0)) * inftyTup_+ === TupNum(mkReal(0))
 
     // val qtf = TupNum(mkReal(0)) * InfRealTuple.infty_+ === TupNum(mkReal(0))
     z3api.z3CheckApi.checkBoolExpr(

@@ -2,7 +2,7 @@ package precondition
 
 import cats.{Id, ~>}
 import precondition.syntax.dslAST._
-import precondition.sgdExample._
+import precondition.sgdExampleTup._
 
 import scala.collection.mutable
 
@@ -58,7 +58,7 @@ object compilers {
             val r = bd.foldMap(this)
             isAccum = false
             stmtSmtListGlob = stmtSmtListGlob.append(
-              WhileSmt(???,???, stmtSmtListAccu)
+              WhileSmtTup(???,???, stmtSmtListAccu)
             )
             println("While end")
             //            While(cond, annotation, bd.step)

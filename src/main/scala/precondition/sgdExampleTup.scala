@@ -7,10 +7,10 @@ import precondition.syntax.smtAST._
 import precondition.z3api.{z3CheckApi, z3Utils}
 
 import lemmas._
-import rpeFunction._
-// import InfRealTuple.TupNum
+import rpeFunctionTup._
+import InfRealTuple.TupNum
 
-object sgdExample {
+object sgdExampleTup {
   import precondition.z3api.z3Utils._ // scala bug? can't move this outside
   private lazy val ctx = z3Utils.newZ3ctx()
   import ctx._
@@ -19,7 +19,7 @@ object sgdExample {
    * generate smt terms for while loop body for sgd example at p.12
    */
   def genSMTterms() = {
-    // import InfRealTuple._
+    import InfRealTuple._
     import ImplicitConv._
 
     // example test set
@@ -71,13 +71,27 @@ object sgdExample {
         List(
           NewVars(w1, w0, w2, w0),
           NewVars(t1, t0, t2, t0),
-          WhileSmt(
+          WhileSmtTup(
             invariant,
             (e1, e2),
             whileBd_relational
           )
         )
       )
+
+    val sgdProgram1 =
+      StmtSmtList(
+        List(
+          // NewVars(w1, w0, w2, w0),
+          // NewVars(t1, t0, t2, t0),
+          WhileSmtTup(
+            invariant,
+            (e1, e2),
+            whileBd_relational
+          )
+        )
+      )
+    import ImplicitConv._
 
     // by TH.7.should be auto derived from I_gen
 
@@ -121,9 +135,9 @@ object sgdExample {
     // val finalGoal = (premise ==> ((w1 - w1).norm() === 0)) && (premise ==> sideCond) // ok
     // val finalGoal = (premise ==> (goalRhs <= goalRhs)) && (premise ==> sideCond) // ok
     // val finalGoal = (premise ==> ((w1 === w2))) && (premise ==> sideCond) // unknown
-    val finalGoal =
-      (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown for sgd,ok for sgd1
-    // val finalGoal = (premise ==> sideCond) // unsat,unk after changes of infty*0
+    // val finalGoal =
+    //   (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown for sgd,ok for sgd1
+    val finalGoal = (premise ==> sideCond) // unsat,unk after changes of infty*0
     // placeholder goal
     // val finalGoal = (premise ==> (mkReal(0) <= goalRhs)) && (premise ==> sideCond) // unknown
 
@@ -163,10 +177,12 @@ object sgdExample {
     val `2L/n*SumAj`: RealExpr =
       sumTermAjF(t(0), T)
 
-    // import ImplicitConv._
-    // import InfRealTuple._
+    import ImplicitConv._
+    import InfRealTuple._
 //    terms I in p.13
-    val tup = iverB(t(0) !== t(1)) * infty_+ + (iverB(t(0) === t(1)) *
+    val tup = TupNum(iverB(t(0) !== t(1))) * infty_+ + (TupNum(
+      iverB(t(0) === t(1))
+    ) *
       ((w(0) - w(1)).norm() + `2L/n*SumAj`))
 
     (tup, sumTermAjF, Seq(numProp, aj_prop, sumFunc_prop))

@@ -15,6 +15,14 @@ object lemmas {
   type binOpType[a] = (a, a) => a
   type PairType[a] = (a, a)
   val vecSort: VecType = mkUninterpretedSort("vec")
+  val infty_+ = mkRealConst("inftypos")
+  val anyNum = mkRealConst("anyNum")
+  // val inftyP =
+  //   forall_z3(
+  //     Array(anyNum).asInstanceOf[Array[Expr[Sort]]],
+  //     (anyNum >= mkReal(0)) ==> (infty_+ >= anyNum)
+  //   )
+  val inftyP = (anyNum >= mkReal(0)) ==> (infty_+ >= anyNum)
   // nth component of vector,but n is not specified. v->real
   // val vec_nth: FuncDecl[RealSort] =
   // mkFuncDecl("vec_nth", Array(vecSort): Array[Sort], mkRealSort())
@@ -59,7 +67,7 @@ to make ( w1 - w1).norm() === 0 work :
     def norm(): Expr[RealSort] = vec_norm(v)
   }
 
-  val vecPremise = vec_addP && vec_minusP && vec_normP && vec_scalaMulP
+  val vecPremise = vec_addP && vec_minusP && vec_normP && vec_scalaMulP && inftyP
 
   def newVec(name: String = "x"): Expr[VecType] = mkConst(name, vecSort)
 
@@ -183,18 +191,29 @@ to make ( w1 - w1).norm() === 0 work :
   }
 
   // gen lhs of  p13.1 regarding loop rule
-  def invar_lhs_gen(e1: BoolExpr, e2: BoolExpr, rpeApplied: TupNum, E: TupNum) = {
+  def invariantTup_lhs(e1: BoolExpr, e2: BoolExpr, rpeApplied: TupNum, E: TupNum) = {
     import ImplicitConv._
     import InfRealTuple._
 
     val I_lhs: TupNum =
       TupNum(iverB(e1 && e2)) * rpeApplied +
         (TupNum(iverB(e1.neg && e2.neg)) * E) +
-        (iverB(e1 !== e2) * infty_+)
+        (iverB(e1 !== e2) * inftyTup_+)
 
     I_lhs
   }
 
+  def invariant_lhs(e1: BoolExpr, e2: BoolExpr, rpeApplied: Expr[RealSort], E: Expr[RealSort]) = {
+    // import ImplicitConv._
+    // import InfRealTuple._
+
+    val I_lhs: Expr[RealSort] =
+      iverB(e1 && e2) * rpeApplied +
+        (iverB(e1.neg && e2.neg) * E) +
+        (iverB(e1 !== e2) * infty_+)
+
+    I_lhs
+  }
   // deal with unknown SMT result for sum:
   // problem:unwrapping might be infinite
 
