@@ -6,6 +6,7 @@ import precondition.z3api.z3CheckApi
 
 import com.doofin.stdScala._
 import InfRealTuple.TupNum
+import z3api._
 // lemmas like bijective function,L lipschez,etc
 object lemmas {
   import precondition.z3api.z3Utils._
@@ -190,7 +191,7 @@ to make ( w1 - w1).norm() === 0 work :
     mkITE(x, mkReal(1), mkReal(0))
   }
 
-  // gen lhs of  p13.1 regarding loop rule
+  // gen lhs of  p13.1 regarding loop rule.E is |w1-w2|
   def invariantTup_lhs(e1: BoolExpr, e2: BoolExpr, rpeApplied: TupNum, E: TupNum) = {
     import ImplicitConv._
     import InfRealTuple._
@@ -309,6 +310,88 @@ to make ( w1 - w1).norm() === 0 work :
     val qtfDec = forall_z3(Array(i, j), prop && prop2)
     // (sum_f, numProp && qtf)
     (sum_f, numProp && qtfDec)
+
+  }
+
+  // generate sumation func from i to j for a_j
+  def sumAjGen() = {
+    import z3Utils._
+    import ImplicitConv.int2mkint
+//    sum terms in I in p.13
+    val (beta, n, l_L) =
+      (mkRealConst("beta"), mkIntConst("n"), mkRealConst("L"))
+
+    val numProp = (beta > 0) && (n > 0) && (l_L >= 0)
+    val (a_j, aj_prop) = aj_func(B = beta)
+
+    val (sumFuncInst, sumFunc_prop) = sum_func_ord2(a_j)
+
+    val sumAjF = { (startIdx: Expr[IntSort], endIdx: Expr[IntSort]) =>
+      (mkReal(2) * l_L / mkInt2Real(n) * sumFuncInst(
+        startIdx,
+        endIdx
+      )).asInstanceOf[RealExpr]
+    }
+    (sumAjF, Seq(numProp, aj_prop, sumFunc_prop))
+  }
+
+  // summation in p13  T: Int
+  // smt check: unknown,take 15min
+  def aj_func(B: RealExpr) = {
+
+    val aj: FuncDecl[RealSort] = mkFuncDecl(
+      "aj",
+      Array(mkIntSort()): Array[Sort],
+      mkRealSort()
+    )
+    val t: Expr[IntSort] = mkIntConst("t")
+    // properties for array a_j :  0<=a_t<=2/B,p12
+    val aj_prop = (mkReal(0) <= aj(t)) && (aj(t) <= (mkReal(2) / B))
+    // 2 th premise,take long time.fixed
+    val qtf = forall_z3(Array(t), aj_prop)
+    (aj, qtf)
+  }
+
+  /**
+   * L-Lipschitz property and Uninterpreted function
+   */
+  def deltaL_B_Lipschitz(B: Long) = {
+
+    val typesOfParam: Array[Sort] =
+      Array(mkIntSort(), mkRealSort())
+    val l = mkFuncDecl("lossF_Lipschitz", typesOfParam, mkRealSort())
+    val z1 = mkIntConst("z1")
+    val (w1, w2) = (mkRealConst("w11"), mkRealConst("w12"))
+//    B-Lipschitz as p.12
+    val L = mkReal(B)
+
+//    L-Lipschitz property
+    val prop = (l(z1, w1) - l(z1, w2))
+      .normW() <= (L * (w1 - w2).normW())
+
+    val qtf: Quantifier =
+      forall_z3(Array(z1, w1, w2).asInstanceOf[Array[Expr[Sort]]], prop)
+    (l, qtf)
+  }
+
+  // delta loss function for vector W
+  def vec_deltaL(B: Long) = {
+
+    val typesOfParam: Array[Sort] =
+      Array(mkIntSort(), vecSort)
+    val l = mkFuncDecl("delta_lossF", typesOfParam, vecSort)
+    val z1 = mkIntConst("z1")
+    val (w1, w2) = (newVec("w11"), newVec("w12"))
+//    B-Lipschitz as p.12
+    val L = mkReal(B)
+
+//    L-Lipschitz property
+    val prop = (l(z1, w1) - l(z1, w2))
+      .norm() <= (L * (w1 - w2).norm())
+
+    val qtf: Quantifier =
+      forall_z3(Array(z1, w1, w2).asInstanceOf[Array[Expr[Sort]]], prop)
+    (l, qtf)
 
   }
 }

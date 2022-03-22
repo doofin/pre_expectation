@@ -53,9 +53,14 @@ object sgdExample {
 
     val (f_bij, f_bij_prop) = lemmas.f_bijection_int()
     val rpeF_inst = rpeF(f_bij) _
+
+    // sum of a_j :  sumAjF=sum i j a_j
+    val (sumAjF, sumProps) =
+      sumAjGen()
+
     //  relational statements for while loop body
     //  generate relational I ,also return sumF_Aj=sum i j a_j for convenience
-    val (invariant, sumF_Aj, i_prem) = invariant_rhs(List(t1, t2), List(w1, w2), T)
+    val (invariant) = invariant_rhs(List(t1, t2), List(w1, w2), T, sumAjF)
 
     val whileBd_relational = StmtSmtList(
       List(
@@ -80,26 +85,10 @@ object sgdExample {
       )
 
     // by TH.7.should be auto derived from I_gen
-
     val premises: Seq[BoolExpr] =
-      Seq(lipschez_premise, lemmas.vecPremise, varProps, T_prem) ++ i_prem
+      Seq(lipschez_premise, lemmas.vecPremise, varProps, T_prem) ++ sumProps
 
     val premise = premises.reduce(_ && _)
-    // previouse goal of p13 (1)
-    // val I_lhs: TupNum = invar_lhs_gen(
-    //   e1,
-    //   e2,
-    //   rpeF_inst(
-    //     whileBd_relational,
-    //     invariant,
-    //     List()
-    //   )._1,
-    //   (w1 - w2)
-    //     .norm()
-    // )
-
-    // val goalOld = premise ==> (I_lhs <= invariant)
-
     // p13. rpe(sgd,|w1-w2|) <= 2L/n sum
     val (goalLhs, sideConds) = rpeF_inst(
       sgdProgram,
@@ -111,7 +100,7 @@ object sgdExample {
     val sideCond = if (sideConds.nonEmpty) sideConds.reduce(_ && _) else mkTrue()
 
     // sum 0 T - 1 a_j
-    val goalRhs = sumF_Aj(0, T - 1)
+    val goalRhs = sumAjF(0, T - 1)
     // val goalRhs = sumF_Aj(0, T) //
 
     // println("sideCond :", sideCond.toString())
@@ -139,97 +128,23 @@ object sgdExample {
    * @param w
    * @return
    */
-  def invariant_rhs(t: List[IntExpr], w: List[Expr[VecType]], T: IntExpr) = {
-
+  def invariant_rhs(
+      t: List[IntExpr],
+      w: List[Expr[VecType]],
+      T: IntExpr,
+      sumAjF: (Expr[IntSort], Expr[IntSort]) => RealExpr
+  ) = {
     import z3Utils._
     import ImplicitConv.int2mkint
-//    sum terms in I in p.13
-    val (beta, n, l_L) =
-      (mkRealConst("beta"), mkIntConst("n"), mkRealConst("L"))
-
-    val numProp = (beta > 0) && (n > 0) && (l_L >= 0)
-    val (a_j, aj_prop) = aj_func(B = beta)
-
-    val (sumFuncInst, sumFunc_prop) = sum_func_ord2(a_j)
-
-    val sumTermAjF = { (startIdx: Expr[IntSort], endIdx: Expr[IntSort]) =>
-      (mkReal(2) * l_L / mkInt2Real(n) * sumFuncInst(
-        startIdx,
-        endIdx
-      )).asInstanceOf[RealExpr]
-    }
-
     // sum for a_j from t to T . ctx.mkInt2Real()
     val `2L/n*SumAj`: RealExpr =
-      sumTermAjF(t(0), T)
+      sumAjF(t(0), T)
 
-    // import ImplicitConv._
-    // import InfRealTuple._
 //    terms I in p.13
-    val tup = iverB(t(0) !== t(1)) * infty_+ + (iverB(t(0) === t(1)) *
+    val num: ArithExpr[RealSort] = iverB(t(0) !== t(1)) * infty_+ + (iverB(t(0) === t(1)) *
       ((w(0) - w(1)).norm() + `2L/n*SumAj`))
 
-    (tup, sumTermAjF, Seq(numProp, aj_prop, sumFunc_prop))
-  }
-
-  // delta loss function for vector W
-  def vec_deltaL(B: Long) = {
-
-    val typesOfParam: Array[Sort] =
-      Array(mkIntSort(), vecSort)
-    val l = mkFuncDecl("delta_lossF", typesOfParam, vecSort)
-    val z1 = mkIntConst("z1")
-    val (w1, w2) = (newVec("w11"), newVec("w12"))
-//    B-Lipschitz as p.12
-    val L = mkReal(B)
-
-//    L-Lipschitz property
-    val prop = (l(z1, w1) - l(z1, w2))
-      .norm() <= (L * (w1 - w2).norm())
-
-    val qtf: Quantifier =
-      forall_z3(Array(z1, w1, w2).asInstanceOf[Array[Expr[Sort]]], prop)
-    (l, qtf)
-
-  }
-
-  /**
-   * L-Lipschitz property and Uninterpreted function
-   */
-  def deltaL_B_Lipschitz(B: Long) = {
-
-    val typesOfParam: Array[Sort] =
-      Array(mkIntSort(), mkRealSort())
-    val l = mkFuncDecl("lossF_Lipschitz", typesOfParam, mkRealSort())
-    val z1 = mkIntConst("z1")
-    val (w1, w2) = (mkRealConst("w11"), mkRealConst("w12"))
-//    B-Lipschitz as p.12
-    val L = mkReal(B)
-
-//    L-Lipschitz property
-    val prop = (l(z1, w1) - l(z1, w2))
-      .normW() <= (L * (w1 - w2).normW())
-
-    val qtf: Quantifier =
-      forall_z3(Array(z1, w1, w2).asInstanceOf[Array[Expr[Sort]]], prop)
-    (l, qtf)
-  }
-
-  // summation in p13  T: Int
-  // smt check: unknown,take 15min
-  def aj_func(B: RealExpr) = {
-
-    val aj: FuncDecl[RealSort] = mkFuncDecl(
-      "aj",
-      Array(mkIntSort()): Array[Sort],
-      mkRealSort()
-    )
-    val t: Expr[IntSort] = mkIntConst("t")
-    // properties for array a_j :  0<=a_t<=2/B,p12
-    val aj_prop = (mkReal(0) <= aj(t)) && (aj(t) <= (mkReal(2) / B))
-    // 2 th premise,take long time.fixed
-    val qtf = forall_z3(Array(t), aj_prop)
-    (aj, qtf)
+    num
   }
 
   def test = {

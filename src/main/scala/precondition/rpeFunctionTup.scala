@@ -5,7 +5,6 @@ import com.microsoft.z3
 import com.microsoft.z3._
 import precondition.syntax.smtAST._
 import precondition.z3api.{z3CheckApi, z3Utils}
-import cats.kernel.instances.TupleMonoidInstances
 
 import lemmas._
 
@@ -68,12 +67,20 @@ object rpeFunctionTup {
             rpeF(f_bij)(head, tlR, tlRsideC)
         }
       case WhileSmtTup(invariantRhs, (e1, e2), xs) =>
-        // invariant.substitute(e1, e2)
-        // put I and cond as some side condition
-        val (rpeApplied, rpeApplied_sideCond) = rpeF(f_bij)(xs, invariantRhs, sideCond)
-        val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpeApplied, E) <= invariantRhs
+        // put I and cond as some side condition,apply rpe for stmt inside while
+        // the rpe(bd,I) in p13.(1),  rpe(bd,I)=rpe(s<-U(S),I')
+        val (rpe_bd_I, rpe_bd_I_sideCond) = rpeF(f_bij)(xs, invariantRhs, sideCond)
+
+        import ImplicitConv._
+        // test cases:
+        // val sideCondNew: BoolExpr = TupNum(mkReal(0)) <= invariantRhs // unsat,ok
+        // val sideCondNew: BoolExpr =
+        // invariantTup_lhs(e1, e2, rpeApplied, E) <= InfRealTuple.inftyTup_+ // unsat,ok
+
+        // p13.(1)
+        val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpe_bd_I, E) <= invariantRhs
         // just return invariant due to TH.7 at p.11 because we have proven the side condition
-        rpeF(f_bij)(xs, invariantRhs, (sideCond :+ sideCondNew) ++ rpeApplied_sideCond)
+        rpeF(f_bij)(xs, invariantRhs, (sideCond :+ sideCondNew) ++ rpe_bd_I_sideCond)
     }
   }
 }
