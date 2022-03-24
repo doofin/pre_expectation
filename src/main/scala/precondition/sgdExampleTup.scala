@@ -161,6 +161,7 @@ object sgdExampleTup {
     val sum0toT = sumAjF(t(0), T)
 
 //    terms I in p.13
+// TupNum(iverB(t(0) !== t(1))) * inftyTup_+ +
     val tup: TupNum = TupNum(iverB(t(0) !== t(1))) * inftyTup_+ + (TupNum(
       iverB(t(0) === t(1))
     ) *

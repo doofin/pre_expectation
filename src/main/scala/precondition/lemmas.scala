@@ -198,9 +198,11 @@ to make ( w1 - w1).norm() === 0 work :
 
     val I_lhs: TupNum =
       TupNum(iverB(e1 && e2)) * rpeApplied +
-        (TupNum(iverB(e1.neg && e2.neg)) * E) +
-        (iverB(e1 !== e2) * inftyTup_+)
+        (TupNum(iverB(e1.neg && e2.neg)) * E) + (iverB(e1 !== e2) * inftyTup_+)
 
+    /*     val I_lhs: TupNum =
+      TupNum(iverB(e1.neg && e2.neg)) * E
+     */
     I_lhs
   }
 

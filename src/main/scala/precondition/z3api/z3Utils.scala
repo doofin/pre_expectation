@@ -34,8 +34,6 @@ object z3Utils {
 
   import ctx._
 
-  
-
   implicit class exprOps(x: Expr[_]) {
 
     def ===(that: Expr[_]) = ctx.mkEq(x, that)
@@ -71,7 +69,9 @@ object z3Utils {
 
     def >(y: Expr[_ <: ArithSort]) = mkGt(x, y)
 
-    def isPos = mkGt(x, mkReal(0, 1))
+    def isPos = mkGt(x, mkReal(0))
+
+    def isNeg = mkLt(x, mkReal(0))
 
   }
   // a <: ArithSort
@@ -89,9 +89,9 @@ object z3Utils {
   implicit class boolOps(x: Expr[BoolSort]) {
     def ||(other: Expr[BoolSort]) = mkOr(x, other)
 
-    def isTrueB = x === mkTrue()
+    // def isTrueB = x === mkTrue()
 
-    def isFalseB = x === mkFalse()
+    // def isFalseB = x === mkFalse()
 
     def &&(other: Expr[BoolSort]) = mkAnd(x, other)
 

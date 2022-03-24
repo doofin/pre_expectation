@@ -9,13 +9,13 @@ import scala.language.existentials
 
 object InfRealTuple {
   import precondition.z3api.z3Utils._
-  lazy val thisCtx = newZ3ctx()
-  // intsort,bool
   import ImplicitConv.tup2inj
+
+  lazy val thisCtx = newZ3ctx()
 
   val inftyTup_+ = TupNum(thisCtx.mkReal(1) -- true)
 
-  lazy val proj @ (tupTp_InfReal, inj_InfReal, prjArr_InfReal) = {
+  lazy val proj @ (_, inj_real2tup, prj_realBool) = { //tupTp_InfReal
     import thisCtx._
     val r =
       mkTupleSort(
@@ -26,16 +26,15 @@ object InfRealTuple {
     (r, r.mkDecl(), r.getFieldDecls)
   }
 
-  lazy val projReal :: projBool :: Nil = prjArr_InfReal.toList
+  lazy val projReal :: projBool :: Nil = prj_realBool.toList
+
+  def projTup(tup: Expr[TupleSort]): (RealExpr, BoolExpr) = {
+    (projReal(tup), projBool(tup)).asInstanceOf[(RealExpr, BoolExpr)]
+  }
 
   case class TupNum(thisTup: Expr[TupleSort]) {
     import thisCtx._
-//    import z3Utils._
-//    import ctx._
-    val (real1: RealExpr, bool1: Expr[BoolSort]) =
-      (projReal(thisTup), projBool(thisTup))
-    val isInf: BoolExpr = bool1.isTrueB
-//    private val tup_inf = inj(mkReal(1, 1), mkTrue())
+    val (real1, bool1) = projTup(thisTup)
 
     def mkBinaryOp(
         op: (RealExpr, RealExpr) => Expr[RealSort],
@@ -43,17 +42,22 @@ object InfRealTuple {
     )(
         oth: TupNum
     ) = {
-      val (real2: RealExpr, bool2: BoolExpr) =
-        (projReal(oth.thisTup), projBool(oth.thisTup))
-      val notInf = inj_InfReal(op.apply(real1, real2), mkFalse())
-      val rInf = mkITE(isInf, thisTup, mkITE(oth.isInf, oth.thisTup, notInf))
+      val (real2, bool2) = projTup(oth.thisTup)
+      // if finite
+      val finiteRes = inj_real2tup(op(real1, real2), mkFalse())
+
+      // commutative op: inf+num=inf,inf*num=(r1*num,true)
+      // non commutative op: inf-num=inf,num-inf=()
+      // (r1,b1) op (r2,b2) =(r1 op r2,)
+      val rInf = mkITE(bool1, thisTup, mkITE(oth.bool1, oth.thisTup, finiteRes))
       //  make inf * 0 = 0
       import ImplicitConv._
 
+      // check if real num will dominate inf (0 * inf=0)
       val r =
         mkITE(
           dominateCond(real1),
-          TupNum(real1).thisTup,
+          TupNum(real1).thisTup, // 0
           mkITE(dominateCond(real2), TupNum(real2).thisTup, rInf)
         )
       // TupNum(rInf) // the old one ,sidecond ok,but not correct
@@ -71,21 +75,29 @@ object InfRealTuple {
     def / = mkBinaryOp(_ / _) _
     def ===(oth: TupNum) = { thisTup === oth.thisTup }
 
-    /** if oth are pos inf,then true if both are not inf,compare real part
+    /**
+     (r1,b1) (r2,b2) , true if  (b2 and r2 >0) | (b1 and r1 <0) | (not b1) and ( not b2 ) and r1<r2
+     if b2 are pos inf then true, if both are not inf,compare real part
       */
     def <=(oth: TupNum) = {
       val (real2: RealExpr, bool2: BoolExpr) =
-        (projReal(oth.thisTup), projBool(oth.thisTup))
+        projTup(oth.thisTup)
 
-      val isNotInf = bool1.isFalseB || bool2.isFalseB
-      val real1_lt_real2 = real1 <= real2
+      val bothNotInf = bool1.neg && bool2.neg
 
-      val oth_isPosInf = oth.isInf && real2.isPos
-      oth_isPosInf || (isNotInf && real1_lt_real2)
+      (bool1 && real1.isNeg) || (bool2 && real2.isPos) || (bothNotInf && (real1 <= real2))
     }
 
+    def <(oth: TupNum) = {
+      val (real2: RealExpr, bool2: BoolExpr) =
+        projTup(oth.thisTup)
+
+      val bothNotInf = bool1.neg && bool2.neg
+
+      (bool1 && real1.isNeg) || (bool2 && real2.isPos) || (bothNotInf && (real1 < real2))
+    }
     def normW() = {
-      TupNum(mkITE(isInf, thisTup, TupNum(real1.normW() -- false).thisTup))
+      TupNum(mkITE(bool1, thisTup, TupNum(real1.normW() -- false).thisTup))
     }
 
   }

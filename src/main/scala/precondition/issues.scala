@@ -59,6 +59,47 @@ object issues {
     )
   }
 
+  def iverB1() = {
+    import ImplicitConv._
+
+    val t0 = mkIntConst("t0")
+    val t1 = mkIntConst("t1")
+    val t2 = mkRealConst("t2")
+
+    // if cond true then 1 else 0. cond is false,so iverB is 0
+    val q2 = TupNum(iverB(t0 + 1 !== t1 + 1)) * t2 <= TupNum(iverB(t0 !== t1)) * inftyTup_+
+
+    // val qtf = TupNum(mkReal(0)) * InfRealTuple.infty_+ === TupNum(mkReal(0))
+    z3api.z3CheckApi.checkBoolExpr(
+      InfRealTuple.thisCtx,
+      Seq(q2.neg),
+      goals = List(Status.UNSATISFIABLE)
+    )
+  }
+
+  def iverB2() = {
+    import ImplicitConv._
+
+    val t0 = mkIntConst("t0")
+    val t1 = mkIntConst("t1")
+    val t2 = mkRealConst("t2")
+    val T = mkIntConst("T")
+    val e1 = t0 < T
+    val e2 = t1 < T
+    // if cond true then 1 else 0. cond is false,so iverB is 0
+    val q2 = TupNum(iverB(e1 && e2)) * (TupNum(iverB(t0 + 1 !== t1 + 1)) * inftyTup_+) + TupNum(
+      iverB(e1 !== e2)
+    ) * inftyTup_+ <= TupNum(
+      iverB(t0 !== t1)
+    ) * inftyTup_+
+
+    // val qtf = TupNum(mkReal(0)) * InfRealTuple.infty_+ === TupNum(mkReal(0))
+    z3api.z3CheckApi.checkBoolExpr(
+      InfRealTuple.thisCtx,
+      Seq(q2.neg),
+      goals = List(Status.UNSATISFIABLE)
+    )
+  }
   def testAll = {
     sumIsUnknown()
     zeroMulInf()

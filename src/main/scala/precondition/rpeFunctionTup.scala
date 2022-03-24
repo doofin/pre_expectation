@@ -79,6 +79,7 @@ object rpeFunctionTup {
 
         // p13.(1)
         val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpe_bd_I, E) <= invariantRhs
+        // val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpe_bd_I, E) <= InfRealTuple.inftyTup_+
         // just return invariant due to TH.7 at p.11 because we have proven the side condition
         rpeF(f_bij)(xs, invariantRhs, (sideCond :+ sideCondNew) ++ rpe_bd_I_sideCond)
     }

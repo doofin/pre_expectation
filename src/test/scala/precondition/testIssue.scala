@@ -8,6 +8,8 @@ class testIssue extends AnyFunSuite {
   test("smt_z3") {
 //    smt_z3.run
     // issues.sumIsUnknown() // ok
-    issues.zeroMulInf2()
+    // issues.zeroMulInf2()
+    issues.iverB1()
+    issues.iverB2()
   }
 }
