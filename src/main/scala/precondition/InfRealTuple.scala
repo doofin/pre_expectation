@@ -3,8 +3,6 @@ package precondition
 import com.microsoft.z3._
 import com.doofin.stdScala._
 
-import com.microsoft.z3.enumerations.Z3_ast_print_mode
-
 import scala.language.existentials
 
 object InfRealTuple {
@@ -14,6 +12,8 @@ object InfRealTuple {
   lazy val thisCtx = newZ3ctx()
 
   val inftyTup_+ = TupNum(thisCtx.mkReal(1) -- true)
+
+  val zeroTup = TupNum(thisCtx.mkReal(0) -- false)
 
   lazy val proj @ (_, inj_real2tup, prj_realBool) = { //tupTp_InfReal
     import thisCtx._
@@ -38,27 +38,30 @@ object InfRealTuple {
 
     def mkBinaryOp(
         op: (RealExpr, RealExpr) => Expr[RealSort],
-        dominateCond: RealExpr => BoolExpr = { x => mkFalse() }
+        zeroCond: RealExpr => BoolExpr = { x => mkFalse() }
     )(
         oth: TupNum
     ) = {
+      import ImplicitConv._
       val (real2, bool2) = projTup(oth.thisTup)
       // if finite
       val finiteRes = inj_real2tup(op(real1, real2), mkFalse())
+      val finiteRes1 = op(real1, real2)
 
-      // commutative op: inf+num=inf,inf*num=(r1*num,true)
-      // non commutative op: inf-num=inf,num-inf=()
-      // (r1,b1) op (r2,b2) =(r1 op r2,)
-      val rInf = mkITE(bool1, thisTup, mkITE(oth.bool1, oth.thisTup, finiteRes))
-      //  make inf * 0 = 0
-      import ImplicitConv._
+      // only deal with non zero cases
+      // +,- : (r1,b1) op (r2,b2) =(r1 op r2, b1 | b2)
+      // *,/ : (r1,b1) op (r2,b2) =(r1 op r2, b1 | b2) if r1,r2 !=0
 
+      val rNonzero = TupNum(op(real1, real2), bool1 || bool2)
+
+      // only deal with inf * 0 = 0
       // check if real num will dominate inf (0 * inf=0)
+      // * : if r1 or r2 =0, then 0
       val r =
         mkITE(
-          dominateCond(real1),
-          TupNum(real1).thisTup, // 0
-          mkITE(dominateCond(real2), TupNum(real2).thisTup, rInf)
+          zeroCond(real1) || zeroCond(real2),
+          zeroTup.thisTup, // 0
+          rNonzero.thisTup
         )
       // TupNum(rInf) // the old one ,sidecond ok,but not correct
       TupNum(r) // this breaks sidecond!
@@ -96,10 +99,14 @@ object InfRealTuple {
 
       (bool1 && real1.isNeg) || (bool2 && real2.isPos) || (bothNotInf && (real1 < real2))
     }
-    def normW() = {
-      TupNum(mkITE(bool1, thisTup, TupNum(real1.normW() -- false).thisTup))
-    }
 
   }
 
 }
+
+/*     def normW() = {
+      TupNum(mkITE(bool1, thisTup, TupNum(real1.normW() -- false).thisTup))
+    } */
+//  inf*inf=(r1*r2,true) ,  inf+inf =undef if signs differ
+// val rInf1 = mkITE(bool1, TupNum(finiteRes1), mkITE(bool2, TupNum(finiteRes1)))
+// val rInf = mkITE(bool1, thisTup, mkITE(oth.bool1, oth.thisTup, finiteRes))

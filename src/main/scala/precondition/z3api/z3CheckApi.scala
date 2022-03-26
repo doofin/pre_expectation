@@ -57,7 +57,7 @@ object z3CheckApi {
 
     if (premise.nonEmpty) {
       println("doing sanity check on premise (goal: premise is sat or unknown)")
-      val r = check(ctx, premise, printSAT, printSmtStr = printSmtStr, timeout = timeout * 500)
+      val r = check(ctx, premise, printSAT, printSmtStr = printSmtStr, timeout = 5000)
       val msg =
         if (r != Status.UNSATISFIABLE) " premise is consistent"
         else " premise is bad"

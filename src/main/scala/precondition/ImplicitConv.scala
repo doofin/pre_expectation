@@ -15,6 +15,8 @@ object ImplicitConv {
   implicit def tup2inj(v_tup: (Expr[RealSort], Boolean)): Expr[TupleSort] =
     inj_real2tup(v_tup._1, thisCtx.mkBool(v_tup._2))
 
+  implicit def tup2inj2(v_tup: (Expr[RealSort], BoolExpr)): Expr[TupleSort] =
+    inj_real2tup(v_tup._1, v_tup._2)
   implicit def real2inj(v_tup: Expr[RealSort]): Expr[TupleSort] =
     inj_real2tup(v_tup, thisCtx.mkBool(false))
   implicit def int2mkint(i: Int): IntNum = thisCtx.mkInt(i)
