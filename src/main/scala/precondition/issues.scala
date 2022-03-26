@@ -4,7 +4,7 @@ import sgdExampleTup._
 import lemmas._
 import z3api.z3Utils._
 import InfRealTuple._
-import com.microsoft.z3.Status
+import com.microsoft.z3._
 // minimal example to reproduce bugs
 object issues {
   import InfRealTuple.thisCtx._
@@ -100,6 +100,67 @@ object issues {
       goals = List(Status.UNSATISFIABLE)
     )
   }
+
+  // simplified case for p13.1 rhs
+  def invariantRhsTup_i1(
+      t: List[IntExpr],
+      w: List[Expr[VecType]],
+      T: IntExpr,
+      sumAjF: (Expr[IntSort], Expr[IntSort]) => RealExpr
+  ) = {
+    import ImplicitConv._
+    import InfRealTuple._
+
+    // sum for a_j from t to T . ctx.mkInt2Real()
+    val sum0toT = sumAjF(t(0), T)
+
+//    terms I in p.13
+// TupNum(iverB(t(0) !== t(1))) * inftyTup_+ +
+
+// unsat,ok
+    val tup: TupNum = TupNum(iverB(t(0) !== t(1))) * inftyTup_+ + (TupNum(
+      iverB(t(0) === t(1))
+    ) *
+      ((w(0) - w(1)).norm() + sum0toT))
+
+    // unsat,ok
+    // val tup: TupNum = ((w(0) - w(1)).norm() + sum0toT)
+
+    tup
+  }
+
+  // simplified case for p13.1 lhs
+  def invariantTup_lhs_i1(e1: BoolExpr, e2: BoolExpr, rpe_bd_I: TupNum, E: TupNum) = {
+    import ImplicitConv._
+    import InfRealTuple._
+
+    /* val I_lhs: TupNum =
+      TupNum(iverB(e1 && e2)) * rpeApplied +
+        (TupNum(iverB(e1.neg && e2.neg)) * E) + (iverB(e1 !== e2) * inftyTup_+) */
+
+    // ukn,original
+    val I_lhs1: TupNum =
+      TupNum(iverB(e1 && e2)) * rpe_bd_I +
+        (TupNum(iverB(e1.neg && e2.neg)) * E)
+
+    // ukn,rm iverB(e1 && e2)
+    val I_lhs4: TupNum =
+      rpe_bd_I +
+        (TupNum(iverB(e1.neg && e2.neg)) * E)
+
+    // ukn,rm rpe_bd_I
+    val I_lhs3: TupNum =
+      TupNum(iverB(e1 && e2)) +
+        (TupNum(iverB(e1.neg && e2.neg)) * E)
+
+    // unsat,ok,rm TupNum(iverB(e1 && e2)) * rpe_bd_I
+    val I_lhs2: TupNum =
+      (TupNum(iverB(e1.neg && e2.neg)) * E)
+
+    val I_lhs = I_lhs4
+    I_lhs
+  }
+
   def testAll = {
     sumIsUnknown()
     zeroMulInf()

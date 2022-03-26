@@ -7,6 +7,7 @@ import precondition.syntax.smtAST._
 import precondition.z3api.{z3CheckApi, z3Utils}
 
 import lemmas._
+import issues.invariantTup_lhs_i1
 
 object rpeFunctionTup {
   import precondition.z3api.z3Utils._ // scala bug? can't move this outside
@@ -75,10 +76,11 @@ object rpeFunctionTup {
         // test cases:
         // val sideCondNew: BoolExpr = TupNum(mkReal(0)) <= invariantRhs // unsat,ok
         // val sideCondNew: BoolExpr =
-        // invariantTup_lhs(e1, e2, rpeApplied, E) <= InfRealTuple.inftyTup_+ // unsat,ok
+        //   invariantTup_lhs(e1, e2, rpe_bd_I, E) <= InfRealTuple.inftyTup_+ // unsat,ok
 
         // p13.(1)
-        val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpe_bd_I, E) <= invariantRhs
+        // val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpe_bd_I, E) <= invariantRhs
+        val sideCondNew: BoolExpr = invariantTup_lhs_i1(e1, e2, rpe_bd_I, E) <= invariantRhs
         // val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpe_bd_I, E) <= InfRealTuple.inftyTup_+
         // just return invariant due to TH.7 at p.11 because we have proven the side condition
         rpeF(f_bij)(xs, invariantRhs, (sideCond :+ sideCondNew) ++ rpe_bd_I_sideCond)

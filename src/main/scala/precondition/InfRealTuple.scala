@@ -88,9 +88,10 @@ object InfRealTuple {
 
       val bothNotInf = bool1.neg && bool2.neg
 
-      (bool1 && real1.isNeg) || (bool2 && real2.isPos) || (bothNotInf && (real1 <= real2))
+      (bool2 && real2.isPos) || (bool1 && real1.isNeg) || (bothNotInf && (real1 <= real2))
     }
 
+    // not used
     def <(oth: TupNum) = {
       val (real2: RealExpr, bool2: BoolExpr) =
         projTup(oth.thisTup)

@@ -9,7 +9,7 @@ import precondition.z3api.{z3CheckApi, z3Utils}
 import lemmas._
 import rpeFunctionTup._
 import InfRealTuple.TupNum
-
+import issues._
 // sgd with tuple number
 object sgdExampleTup {
   import precondition.z3api.z3Utils._ // scala bug? can't move this outside
@@ -61,7 +61,7 @@ object sgdExampleTup {
 
     // invariant_annonotation in while stmt and also rhs of p13(1)
     val invariant_annon =
-      invariantRhsTup(List(t1, t2), List(w1, w2), T, sumAjF)
+      invariantRhsTup_i1(List(t1, t2), List(w1, w2), T, sumAjF)
 
     val whileBd_relational = StmtSmtList(
       List(
@@ -140,34 +140,6 @@ object sgdExampleTup {
 
     // (premises, goalOld.neg)
     (premises, finalGoal.neg)
-  }
-
-  /**
-   * loop invariant I at p13 rhs,also as annotation of while 
-   * @param t
-   * @param w
-   * @return
-   */
-  def invariantRhsTup(
-      t: List[IntExpr],
-      w: List[Expr[VecType]],
-      T: IntExpr,
-      sumAjF: (Expr[IntSort], Expr[IntSort]) => RealExpr
-  ) = {
-    import ImplicitConv._
-    import InfRealTuple._
-
-    // sum for a_j from t to T . ctx.mkInt2Real()
-    val sum0toT = sumAjF(t(0), T)
-
-//    terms I in p.13
-// TupNum(iverB(t(0) !== t(1))) * inftyTup_+ +
-    val tup: TupNum = TupNum(iverB(t(0) !== t(1))) * inftyTup_+ + (TupNum(
-      iverB(t(0) === t(1))
-    ) *
-      ((w(0) - w(1)).norm() + sum0toT))
-
-    tup
   }
 
   def test = {

@@ -206,6 +206,34 @@ to make ( w1 - w1).norm() === 0 work :
     I_lhs
   }
 
+  /**
+   * loop invariant I at p13 rhs,also as annotation of while 
+   * @param t
+   * @param w
+   * @return
+   */
+  def invariantRhsTup(
+      t: List[IntExpr],
+      w: List[Expr[VecType]],
+      T: IntExpr,
+      sumAjF: (Expr[IntSort], Expr[IntSort]) => RealExpr
+  ) = {
+    import ImplicitConv._
+    import InfRealTuple._
+
+    // sum for a_j from t to T . ctx.mkInt2Real()
+    val sum0toT = sumAjF(t(0), T)
+
+//    terms I in p.13
+// TupNum(iverB(t(0) !== t(1))) * inftyTup_+ +
+    val tup: TupNum = TupNum(iverB(t(0) !== t(1))) * inftyTup_+ + (TupNum(
+      iverB(t(0) === t(1))
+    ) *
+      ((w(0) - w(1)).norm() + sum0toT))
+
+    tup
+  }
+
   def invariant_lhs(e1: BoolExpr, e2: BoolExpr, rpeApplied: Expr[RealSort], E: Expr[RealSort]) = {
 
     val I_lhs: Expr[RealSort] =
