@@ -103,16 +103,14 @@ object sgdExample {
     val goalRhs = sumAjF(0, T - 1)
     // val goalRhs = sumF_Aj(0, T) //
 
-    // println("sideCond :", sideCond.toString())
-    // println("goal2lhs <= goal2rhs")
     // println(goal2lhs <= goal2rhs)
+    // val finalGoal =
+    //   (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown for sgd,ok for sgd1
 
     // val finalGoal = (premise ==> ((w1 - w1).norm() === 0)) && (premise ==> sideCond) // ok
     // val finalGoal = (premise ==> (goalRhs <= goalRhs)) && (premise ==> sideCond) // ok
     // val finalGoal = (premise ==> ((w1 === w2))) && (premise ==> sideCond) // unknown
-    val finalGoal =
-      (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown for sgd,ok for sgd1
-    // val finalGoal = (premise ==> sideCond) // unsat,unk after changes of infty*0
+    val finalGoal = (premise ==> sideCond) // unk after changes of infty*0
     // placeholder goal
     // val finalGoal = (premise ==> (mkReal(0) <= goalRhs)) && (premise ==> sideCond) // unknown
 

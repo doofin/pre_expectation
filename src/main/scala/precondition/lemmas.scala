@@ -207,8 +207,6 @@ to make ( w1 - w1).norm() === 0 work :
   }
 
   def invariant_lhs(e1: BoolExpr, e2: BoolExpr, rpeApplied: Expr[RealSort], E: Expr[RealSort]) = {
-    // import ImplicitConv._
-    // import InfRealTuple._
 
     val I_lhs: Expr[RealSort] =
       iverB(e1 && e2) * rpeApplied +
@@ -217,11 +215,10 @@ to make ( w1 - w1).norm() === 0 work :
 
     I_lhs
   }
-  // deal with unknown SMT result for sum:
-  // problem:unwrapping might be infinite
 
-  // 1:sum = sum i-1 ,2:sum : make it weaker 3.limited function
   //  sum function in p.13
+  // deal with unknown SMT result for sum, problem:unwrapping might be infinite
+  // 1:sum = sum i-1 ,2:sum : make it weaker 3.limited function
 // sum_aj : int^2=>real,sum over a_j from i to j
 // (smt result:,UNKNOWN)
 // decreasing:  sum i j = (sum i j-1) + x(j) = x 0 ... x j-2 x j-1 x j
