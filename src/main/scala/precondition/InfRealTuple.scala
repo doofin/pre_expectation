@@ -49,7 +49,7 @@ object InfRealTuple {
       val finiteRes1 = op(real1, real2)
 
       // only deal with non zero cases
-      // +,- : (r1,b1) op (r2,b2) =(r1 op r2, b1 | b2)
+      // +,- : (r1,b1) op (r2,b2) =(r1 op r2, b1 | b2) . don't work with inf_+ + inf_-
       // *,/ : (r1,b1) op (r2,b2) =(r1 op r2, b1 | b2) if r1,r2 !=0
 
       val rNonzero = TupNum(op(real1, real2), bool1 || bool2)
@@ -88,6 +88,7 @@ object InfRealTuple {
 
       val bothNotInf = bool1.neg && bool2.neg
 
+      // if num2 is neg inf,or num1 is pos inf,or if both are finite then compare real part
       (bool2 && real2.isPos) || (bool1 && real1.isNeg) || (bothNotInf && (real1 <= real2))
     }
 

@@ -67,10 +67,10 @@ object rpeFunctionTup {
             val (tlR, tlRsideC) = rpeF(f_bij)(StmtSmtList(tl), E, sideCond)
             rpeF(f_bij)(head, tlR, tlRsideC)
         }
-      case WhileSmtTup(invariantRhs, (e1, e2), xs) =>
+      case WhileSmtTup(invariantRhs, (e1, e2), whileBd) =>
         // put I and cond as some side condition,apply rpe for stmt inside while
         // the rpe(bd,I) in p13.(1),  rpe(bd,I)=rpe(s<-U(S),I')
-        val (rpe_bd_I, rpe_bd_I_sideCond) = rpeF(f_bij)(xs, invariantRhs, sideCond)
+        val (rpe_bd_I, rpe_bd_I_sideCond) = rpeF(f_bij)(whileBd, invariantRhs, sideCond)
 
         import ImplicitConv._
         // test cases:
@@ -81,9 +81,11 @@ object rpeFunctionTup {
         // p13.(1)
         // val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpe_bd_I, E) <= invariantRhs
         val sideCondNew: BoolExpr = invariantTup_lhs_i1(e1, e2, rpe_bd_I, E) <= invariantRhs
+        // val sideCondNew: BoolExpr = InfRealTuple.inftyTup_+ <= InfRealTuple.inftyTup_+ // unsat,ok
+        // val sideCondNew: BoolExpr = InfRealTuple.inftyTup_+ <= invariantRhs // ukn
         // val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpe_bd_I, E) <= InfRealTuple.inftyTup_+
         // just return invariant due to TH.7 at p.11 because we have proven the side condition
-        rpeF(f_bij)(xs, invariantRhs, (sideCond :+ sideCondNew) ++ rpe_bd_I_sideCond)
+        rpeF(f_bij)(whileBd, invariantRhs, (sideCond :+ sideCondNew) ++ rpe_bd_I_sideCond)
     }
   }
 }

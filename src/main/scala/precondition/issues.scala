@@ -107,7 +107,7 @@ object issues {
       w: List[Expr[VecType]],
       T: IntExpr,
       sumAjF: (Expr[IntSort], Expr[IntSort]) => RealExpr
-  ) = {
+  ): TupNum = {
     import ImplicitConv._
     import InfRealTuple._
 
@@ -126,7 +126,8 @@ object issues {
     // unsat,ok
     // val tup: TupNum = ((w(0) - w(1)).norm() + sum0toT)
 
-    tup
+    // TupNum(mkReal(100)) //unk
+    tup // unsat,ok
   }
 
   // simplified case for p13.1 lhs
@@ -140,8 +141,8 @@ object issues {
 
     // ukn,original
     val I_lhs1: TupNum =
-      TupNum(iverB(e1 && e2)) * rpe_bd_I +
-        (TupNum(iverB(e1.neg && e2.neg)) * E)
+      iverB(e1 && e2) * rpe_bd_I +
+        (iverB(e1.neg && e2.neg) * E)
 
     // ukn,rm iverB(e1 && e2)
     val I_lhs4: TupNum =
@@ -150,15 +151,15 @@ object issues {
 
     // ukn,rm rpe_bd_I
     val I_lhs3: TupNum =
-      TupNum(iverB(e1 && e2)) +
+      iverB(e1 && e2) +
         (TupNum(iverB(e1.neg && e2.neg)) * E)
 
     // unsat,ok,rm TupNum(iverB(e1 && e2)) * rpe_bd_I
     val I_lhs2: TupNum =
       (TupNum(iverB(e1.neg && e2.neg)) * E)
 
-    val I_lhs = I_lhs4
-    I_lhs
+    // I_lhs2
+    I_lhs1
   }
 
   def testAll = {
