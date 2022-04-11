@@ -9,7 +9,8 @@ class testIssue extends AnyFunSuite {
 //    smt_z3.run
     // issues.sumIsUnknown() // ok
     // issues.zeroMulInf2()
-    issues.iverB1()
-    issues.iverB2()
+    // issuesAndTests.iverB1()
+    // issuesAndTests.iverB2()
+
   }
 }

@@ -52,16 +52,15 @@ object z3CheckApi {
     // println("checkBoolCtx")
     val r = check(ctx, xs, printSAT, printSmtStr = printSmtStr, timeout = timeout * 1000)
     println(s"result: ${r} , goal: ${goals}  , description : " + goalMsg)
-    val msg = if (goals contains r) "goal achieved !" else s"goal failed ! result ${r} != ${goals}"
-    println(msg)
+    // val msg = if (goals contains r) "goal achieved !" else s"goal failed ! result ${r} != ${goals}"
+    // println(msg)
 
     if (premise.nonEmpty) {
-      println("doing sanity check on premise (goal: premise is sat or unknown)")
       val r = check(ctx, premise, printSAT, printSmtStr = printSmtStr, timeout = 5000)
       val msg =
         if (r != Status.UNSATISFIABLE) " premise is consistent"
         else " premise is bad"
-      println(msg)
+      println("checking premise (sat or unknown) : " + msg)
     } else {
       println("skip sanity check on premise")
     }
@@ -99,7 +98,7 @@ object z3CheckApi {
         "UNSATISFIABLE : " + ur
 
       case Status.UNKNOWN =>
-        println(("UNKNOWN after checking for " + "timeout " + timeout))
+        // println(("UNKNOWN after checking for " + "timeout " + timeout))
         "UNKNOWN"
       case Status.SATISFIABLE =>
         if (!printSAT) encloseDebug("model str:") {

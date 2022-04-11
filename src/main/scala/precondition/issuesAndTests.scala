@@ -6,7 +6,7 @@ import z3api.z3Utils._
 import InfRealTuple._
 import com.microsoft.z3._
 // minimal example to reproduce bugs
-object issues {
+object issuesAndTests {
   import InfRealTuple.thisCtx._
   def sumIsUnknown() = {
     val T = mkIntConst("T")
@@ -117,20 +117,19 @@ object issues {
 //    terms I in p.13
 // TupNum(iverB(t(0) !== t(1))) * inftyTup_+ +
 
-// unsat,ok
-    val tup: TupNum = TupNum(iverB(t(0) !== t(1))) * inftyTup_+ + (TupNum(
-      iverB(t(0) === t(1))
-    ) *
+// the original
+// unsat,ok for some lhs
+    val tup: TupNum = iverB(t(0) !== t(1)) * inftyTup_+ + (iverB(t(0) === t(1)) *
       ((w(0) - w(1)).norm() + sum0toT))
 
     // unsat,ok
     // val tup: TupNum = ((w(0) - w(1)).norm() + sum0toT)
 
     // TupNum(mkReal(100)) //unk
-    tup // unsat,ok
+    tup
   }
 
-  // simplified case for p13.1 lhs
+  // simplified case for th.7 and p13.1 lhs
   def invariantTup_lhs_i1(e1: BoolExpr, e2: BoolExpr, rpe_bd_I: TupNum, E: TupNum) = {
     import ImplicitConv._
     import InfRealTuple._
@@ -144,22 +143,42 @@ object issues {
       iverB(e1 && e2) * rpe_bd_I +
         (iverB(e1.neg && e2.neg) * E)
 
-    // ukn,rm iverB(e1 && e2)
-    val I_lhs4: TupNum =
-      rpe_bd_I +
-        (TupNum(iverB(e1.neg && e2.neg)) * E)
-
+    // unsat,ok,rm TupNum(iverB(e1 && e2)) * rpe_bd_I
+    val I_lhs2: TupNum =
+      (iverB(e1.neg && e2.neg) * E)
     // ukn,rm rpe_bd_I
     val I_lhs3: TupNum =
       iverB(e1 && e2) +
         (TupNum(iverB(e1.neg && e2.neg)) * E)
+    // ukn,rm iverB(e1 && e2)
+    val I_lhs4: TupNum =
+      rpe_bd_I +
+        (iverB(e1.neg && e2.neg) * E)
 
-    // unsat,ok,rm TupNum(iverB(e1 && e2)) * rpe_bd_I
-    val I_lhs2: TupNum =
-      (TupNum(iverB(e1.neg && e2.neg)) * E)
+    // unk
+    val I_lhs5: TupNum = iverB(e1 && e2)
 
-    // I_lhs2
-    I_lhs1
+    val I_lhs6: TupNum =
+      iverB(e1 && e2) * rpe_bd_I
+
+    // [verifies] [e1 != e2] * inf <= I
+    val I_lhs7: TupNum =
+      iverB(e1 !== e2) * inftyTup_+
+
+    // rpe_bd_I // ukn
+    I_lhs5
+  }
+
+  // axiom with infinite array works
+  def testarr() = {
+    val n = mkIntConst("N2")
+    val e = mkArrayVec("vec_e")
+
+    // e(i) = true if n = i else e(i) = false
+    val qtf: Quantifier =
+      forall_z3(Array(n).asInstanceOf[Array[Expr[Sort]]], mkSelect(e, n) === mkTrue())
+    val qr = mkSelect(e, mkInt(1)) === mkTrue()
+    z3api.z3CheckApi.checkBoolExpr(InfRealTuple.thisCtx, Seq((qtf ==> qr).neg))
   }
 
   def testAll = {

@@ -28,13 +28,13 @@ object sgdExample {
 
 //    vars for loop invariant in p.13
 //   previous simplification : dim w = 1,use R instead of R^n
-    val w0 = newVec("w0")
+    val w0 = newVecReal("w0")
     // val t0 = mkIntConst("t0")
     val t0 = mkInt(0)
     // val t0prop = t0 === mkInt(0)
-    val (w1, w2) = (newVec("w1"), newVec("w2"))
+    val (w1, w2) = (newVecReal("w1"), newVecReal("w2"))
 
-    val (g1, g2) = (newVec("g1"), newVec("g2"))
+    val (g1, g2) = (newVecReal("g1"), newVecReal("g2"))
     val t1 :: t2 :: Nil = (1 to 2).map(x => mkIntConst(s"t$x")).toList
     val s1 :: s2 :: Nil = mkSymList(2, "s", mkIntConst)
 

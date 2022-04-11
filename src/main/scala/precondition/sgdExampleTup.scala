@@ -9,7 +9,7 @@ import precondition.z3api.{z3CheckApi, z3Utils}
 import lemmas._
 import rpeFunctionTup._
 import InfRealTuple.TupNum
-import issues._
+import issuesAndTests._
 // sgd with tuple number
 object sgdExampleTup {
   import precondition.z3api.z3Utils._ // scala bug? can't move this outside
@@ -29,13 +29,13 @@ object sgdExampleTup {
 
 //    vars for loop invariant in p.13
 //   previous simplification : dim w = 1,use R instead of R^n
-    val w0 = newVec("w0")
+    val w0 = newVecReal("w0")
     // val t0 = mkIntConst("t0")
     val t0 = mkInt(0)
     // val t0prop = t0 === mkInt(0)
-    val (w1, w2) = (newVec("w1"), newVec("w2"))
+    val (w1, w2) = (newVecReal("w1"), newVecReal("w2"))
 
-    val (g1, g2) = (newVec("g1"), newVec("g2"))
+    val (g1, g2) = (newVecReal("g1"), newVecReal("g2"))
     val t1 :: t2 :: Nil = (1 to 2).map(x => mkIntConst(s"t$x")).toList
     val s1 :: s2 :: Nil = mkSymList(2, "s", mkIntConst)
 
@@ -59,7 +59,11 @@ object sgdExampleTup {
     val (sumAjF, sumProps) =
       sumAjGen()
 
-    // invariant_annonotation in while stmt and also rhs of p13(1)
+    // original invariant_annonotation in while stmt and also rhs of p13(1)
+    // val invariant_annon =
+    //   invariantRhsTup(List(t1, t2), List(w1, w2), T, sumAjF)
+
+    // testing invariant_annonotation in while stmt and also rhs of p13(1)
     val invariant_annon =
       invariantRhsTup_i1(List(t1, t2), List(w1, w2), T, sumAjF)
 

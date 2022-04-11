@@ -7,7 +7,7 @@ import precondition.syntax.smtAST._
 import precondition.z3api.{z3CheckApi, z3Utils}
 
 import lemmas._
-import issues.invariantTup_lhs_i1
+import issuesAndTests.invariantTup_lhs_i1
 
 object rpeFunctionTup {
   import precondition.z3api.z3Utils._ // scala bug? can't move this outside
@@ -67,6 +67,15 @@ object rpeFunctionTup {
             val (tlR, tlRsideC) = rpeF(f_bij)(StmtSmtList(tl), E, sideCond)
             rpeF(f_bij)(head, tlR, tlRsideC)
         }
+      case If_Tup((e1, e2), s1, s2) =>
+        import ImplicitConv._
+        val (t1, sc1) = rpeF(f_bij)(s1, E, sideCond)
+        val (t2, sc2) = rpeF(f_bij)(s2, E, sideCond)
+        val res: TupNum =
+          iverB(e1 && e2) * t1 + (iverB(e1.neg && e2.neg) * t2) + (iverB(
+            e1 !== e2
+          ) * InfRealTuple.inftyTup_+)
+        (res, sc1 ++ sc2)
       case WhileSmtTup(invariantRhs, (e1, e2), whileBd) =>
         // put I and cond as some side condition,apply rpe for stmt inside while
         // the rpe(bd,I) in p13.(1),  rpe(bd,I)=rpe(s<-U(S),I')
@@ -79,8 +88,9 @@ object rpeFunctionTup {
         //   invariantTup_lhs(e1, e2, rpe_bd_I, E) <= InfRealTuple.inftyTup_+ // unsat,ok
 
         // p13.(1)
-        // val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpe_bd_I, E) <= invariantRhs
-        val sideCondNew: BoolExpr = invariantTup_lhs_i1(e1, e2, rpe_bd_I, E) <= invariantRhs
+        val sideCondNew: BoolExpr = theorem7p11_lhs(e1, e2, rpe_bd_I, E) <= invariantRhs
+
+        // val sideCondNew: BoolExpr = invariantTup_lhs_i1(e1, e2, rpe_bd_I, E) <= invariantRhs
         // val sideCondNew: BoolExpr = InfRealTuple.inftyTup_+ <= InfRealTuple.inftyTup_+ // unsat,ok
         // val sideCondNew: BoolExpr = InfRealTuple.inftyTup_+ <= invariantRhs // ukn
         // val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpe_bd_I, E) <= InfRealTuple.inftyTup_+

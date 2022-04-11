@@ -41,6 +41,12 @@ object smtAST {
       xs: StmtSmtList
   ) extends StmtSmt
 
+  case class If_Tup(
+      cond: (BoolExpr, BoolExpr),
+      s1: StmtSmt,
+      s2: StmtSmt
+  ) extends StmtSmt
+
   case class WhileSmt(
       annotation: Expr[RealSort],
       cond: (BoolExpr, BoolExpr),
