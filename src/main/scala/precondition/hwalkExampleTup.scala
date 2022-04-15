@@ -49,8 +49,10 @@ object hwalkExampleTup {
     val (xor_r2, xor2P) = xor_arr(pos2, ei2)
 
     val premises: Seq[BoolExpr] =
-      Seq(f_bij_prop, invarProps, ei1p, ei2p, xor1P, xor2P)
+      Seq(f_bij_prop, invarProps, ei1p) //  ei1p is bad
 
+    // val premises: Seq[BoolExpr] =
+    //   Seq(f_bij_prop, invarProps, ei1p, ei2p, xor1P, xor2P)
     val while_bd = WhileSmtTup(
       invar,
       (k1 < K1, k2 < K2),

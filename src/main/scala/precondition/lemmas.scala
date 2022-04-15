@@ -569,14 +569,19 @@ to make ( w1 - w1).norm() === 0 work :
     (xorRes, qtf)
   }
 
+  // premise is bad
   def ei_arr(i: IntExpr) = {
     val n = mkIntConst("N2")
     val e = mkArrayVec("vec_e")
 
     // e(i) = true if n = i else e(i) = false
     // val r = mkStore(e, i, n === i)
+    // mkSelect(e, i)=== n === i
     val qtf: Quantifier =
-      forall_z3(Array(n).asInstanceOf[Array[Expr[Sort]]], mkSelect(e, i) === (n === i))
+      forall_z3(
+        Array(n).asInstanceOf[Array[Expr[Sort]]],
+        ((n === i) ==> mkSelect(e, i) === mkTrue()) && ((n !== i) ==> mkSelect(e, i) === mkFalse())
+      )
     (e, qtf)
   }
 
