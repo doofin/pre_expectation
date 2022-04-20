@@ -25,10 +25,16 @@ object smtAST {
   ) extends StmtSmt
 
   // make it relational : x1,x2<-D
-  case class AssigRand[a <: ArithSort](
+  case class AssigRandSet[a <: ArithSort](
       x1: Expr[a],
       x2: Expr[a],
       dist: Set[Expr[a]]
+  ) extends StmtSmt
+
+  case class AssigRandInt[a <: ArithSort](
+      x1: Expr[a],
+      x2: Expr[a],
+      N: IntExpr
   ) extends StmtSmt
 
   case class StmtSmtList(xs: List[StmtSmt]) extends StmtSmt {
@@ -47,6 +53,7 @@ object smtAST {
       s2: StmtSmt
   ) extends StmtSmt
 
+  @deprecated("use WhileSmtTup")
   case class WhileSmt(
       annotation: Expr[RealSort],
       cond: (BoolExpr, BoolExpr),

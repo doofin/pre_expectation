@@ -37,7 +37,7 @@ object z3Utils {
   implicit class exprOps(x: Expr[_]) {
 
     def ===(that: Expr[_]) = ctx.mkEq(x, that)
-    
+
     def !==(y: Expr[_]) = ctx.mkEq(x, y).neg
   }
 

@@ -43,7 +43,7 @@ object rpeFunction {
       case Assig(x1, e1, x2, e2) =>
         (E.substitute(x1, e1).substitute(x2, e2), sideCond)
 
-      case AssigRand(x1, x2, d) =>
+      case AssigRandSet(x1, x2, d) =>
         /* use the trick from bottom of p.10,which only works if rpe is in left hand side, due to
          * the inequality */
         /* make a sum of E ,substitute x1 for f(v) where f:isomorphism of S -> S and v is in

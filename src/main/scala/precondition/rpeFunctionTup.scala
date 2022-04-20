@@ -42,7 +42,7 @@ object rpeFunctionTup {
       case Assig(x1, e1, x2, e2) =>
         (E.copy(thisTup = E.thisTup.substitute(x1, e1).substitute(x2, e2)), sideCond)
 
-      case AssigRand(x1, x2, d) =>
+      case AssigRandSet(x1, x2, d) =>
         /* use the trick from bottom of p.10,which only works if rpe is in left hand side, due to
          * the inequality */
         /* make a sum of E ,substitute x1 for f(v) where f:isomorphism of S -> S and v is in
@@ -58,6 +58,12 @@ object rpeFunctionTup {
         import ImplicitConv._
         (sum1 / mkReal(d.size), sideCond)
 
+      // for U([N])=U(1..N)
+      case AssigRandInt(x1, x2, n) =>
+        val mid = n / mkInt(2)
+        val r = E.copy(thisTup = E.thisTup.substitute(x1, mid).substitute(x2, mid))
+
+        (r, sideCond)
       // eval of stmt is done reversely!
       case StmtSmtList(xs) =>
         xs match {

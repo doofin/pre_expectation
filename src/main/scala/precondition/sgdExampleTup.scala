@@ -69,7 +69,7 @@ object sgdExampleTup {
 
     val whileBd_relational = StmtSmtList(
       List(
-        AssigRand(s1, s2, s_distrib),
+        AssigRandSet(s1, s2, s_distrib),
         Assig(g1, deltaL(s1, w1), g2, deltaL(s2, w2)),
         Assig(w1, w1 - g1.mulByScalar(a_t), w2, w2 - g2.mulByScalar(a_t)),
         Assig(t1, t1 + mkInt(1), t2, t2 + mkInt(1))

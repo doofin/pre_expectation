@@ -32,15 +32,22 @@ object lemmas {
   // int,vec->real
   type VecType = UninterpretedSort
   val vecSort: VecType = mkUninterpretedSort("vec")
-
-  def mkVec[R <: Sort](name: String, sort: R) =
+// mkConst("",vecSort).substitute()
+  def vecNth[R <: Sort](name: String, sort: R) =
     mkFuncDecl[R](
       name,
       Array(mkIntSort(), vecSort): Array[Sort],
       sort
     )
 
-  val vec_nth_real: FuncDecl[RealSort] = mkVec("vec_nth_real", mkRealSort())
+  def vecSelect[R <: Sort](name: String, sort: R) =
+    mkFuncDecl[R](
+      name,
+      Array(vecSort, mkIntSort()): Array[Sort],
+      sort
+    )
+
+  val vec_nth_real: FuncDecl[RealSort] = vecNth("vec_nth_real", mkRealSort())
 
   val (vec_add, vec_addP) = vec_binOp(_ + _, "+")
   val (vec_scalaMul, vec_scalaMulP) = scala_mul_vec()
@@ -78,6 +85,8 @@ to make ( w1 - w1).norm() === 0 work :
   val vecPremise = vec_addP && vec_minusP && vec_normP && vec_scalaMulP && inftyP
 
   def newVecReal(name: String = "x"): Expr[VecType] = mkConst(name, vecSort)
+
+  def newVecBool(name: String = "b"): Expr[VecType] = mkConst(name, vecSort)
 
   /**
    * generate norm operator for vec. return: normF : vec -> real
@@ -355,62 +364,6 @@ to make ( w1 - w1).norm() === 0 work :
   }
 
   // sum for dH at p17
-  def sum_func_dh(pos1: FuncDecl[BoolSort], pos2: FuncDecl[BoolSort]) = {
-    val sum_f = mkFuncDecl(
-      "sum",
-      Array(mkIntSort(), mkIntSort()): Array[Sort],
-      mkRealSort()
-    )
-    val i: Expr[IntSort] = mkIntConst("i")
-    val j: Expr[IntSort] = mkIntConst("j")
-
-    import ImplicitConv.int2mkint
-    val numProp = i >= 0 && (j >= 0)
-//    use implicits for mkInt
-    import ImplicitConv.int2mkint
-
-    // widening: make the result weaker: a i >=0,sum i j >0 -> sum i+1 j >0
-    // need a way to update upper bound
-    val prop =
-      (i <= j) ==> ((sum_f(i, j) >= 0) && (sum_f(i, j) === sum_f(i + 1, j) + iverB(
-        pos1(i) !== pos2(i)
-      )))
-
-    val prop2 = i > j ==> (sum_f(i, j) === 0)
-
-    val qtfDec = forall_z3(Array(i, j), prop && prop2)
-    // (sum_f, numProp && qtf)
-    (sum_f, numProp && qtfDec)
-
-  }
-
-  def sum_func_dh_arr(pos1: BitVecArr, pos2: BitVecArr) = {
-    val sum_f = mkFuncDecl(
-      "sum",
-      Array(mkIntSort(), mkIntSort()): Array[Sort],
-      mkRealSort()
-    )
-    val i: Expr[IntSort] = mkIntConst("i")
-    val j: Expr[IntSort] = mkIntConst("j")
-
-    import ImplicitConv.int2mkint
-    val numProp = i >= 0 && (j >= 0)
-//    use implicits for mkInt
-    import ImplicitConv.int2mkint
-
-    // widening: make the result weaker: a i >=0,sum i j >0 -> sum i+1 j >0
-    // need a way to update upper bound
-    val prop =
-      (i <= j) ==> ((sum_f(i, j) >= 0) && (sum_f(i, j) === sum_f(i + 1, j) + iverB(
-        mkSelect(pos1, i) !== mkSelect(pos2, i)
-      )))
-
-    val prop2 = i > j ==> (sum_f(i, j) === 0)
-
-    val qtfDec = forall_z3(Array(i, j), prop && prop2)
-    // (sum_f, numProp && qtf)
-    (sum_f, numProp && qtfDec)
-  }
 
   // generate sumation func from i to j for a_j
   def sumAjGen() = {
@@ -496,6 +449,74 @@ to make ( w1 - w1).norm() === 0 work :
 
   // req: len dH = N
   // pos:list of bool encode as vec or array/native bitvector
+
+  // arrayExample2
+  def mkArrayVec(name: String) = {
+    val arr: ArrayExpr[IntSort, BoolSort] = mkArrayConst(name, mkIntSort(), mkBoolSort())
+    arr
+  }
+// integers {0, . . . , N − 1}
+  def U()={
+
+  }
+}
+
+/*
+def xor(a: FuncDecl[BoolSort], b: FuncDecl[BoolSort]) = {
+    // ⊕ for xor
+    val i = mkIntConst("idx_xor")
+    val e: FuncDecl[BoolSort] = mkVecNth("vec_xor", mkBoolSort())
+
+    // e(i) = true if n = i else e(i) = false
+    val qtf: Quantifier =
+      forall_z3(Array(i).asInstanceOf[Array[Expr[Sort]]], e(i) === (mkXor(a(i), b(i))))
+    (e, qtf)
+  }
+
+def ei(i: IntExpr) = {
+    val n = mkIntConst("N2")
+    val e: FuncDecl[BoolSort] = mkVecNth("vec_e", mkBoolSort())
+
+    // e(i) = true if n = i else e(i) = false
+    val qtf: Quantifier =
+      forall_z3(Array(n).asInstanceOf[Array[Expr[Sort]]], e(i) === (n === i))
+    (e, qtf)
+  }
+
+  def xor_arr(a: ArrayExpr[IntSort, BoolSort], b: ArrayExpr[IntSort, BoolSort]) = {
+    val i = mkIntConst("idx_xor")
+    val xorRes = mkArrayVec("vec_xor")
+
+    // e(i) = true if n = i else e(i) = false
+
+    // won't work with all index?
+    // mkStore(e, i, mkXor(mkSelect(a, i), mkSelect(b, i)))
+
+    val qtf: Quantifier =
+      forall_z3(
+        Array(i).asInstanceOf[Array[Expr[Sort]]],
+        mkSelect(xorRes, i) === (mkXor(mkSelect(a, i), mkSelect(b, i)))
+      )
+    (xorRes, qtf)
+  }
+
+  def ei_arr(i: IntExpr) = {
+    // premise is bad
+    val n = mkIntConst("N2")
+    val e = mkArrayVec("vec_e")
+
+    // e(i) = true if n = i else e(i) = false
+    // val r = mkStore(e, i, n === i)
+    // mkSelect(e, i)=== n === i
+    val qtf: Quantifier =
+      forall_z3(
+        Array(n).asInstanceOf[Array[Expr[IntSort]]],
+        ((n === i) ==> mkSelect(e, i) === mkTrue()) && ((n !== i) ==> mkSelect(e, i) === mkFalse())
+      )
+    (e, qtf)
+  }
+    // req: len dH = N
+  // pos:list of bool encode as vec or array/native bitvector
   def hwalkInvariant(k1: IntExpr, k2: IntExpr, K1: IntExpr, K2: IntExpr) = {
     val N: IntExpr = mkIntConst("N")
     val n = mkIntConst("N1")
@@ -524,65 +545,31 @@ to make ( w1 - w1).norm() === 0 work :
     (pos1, pos2, dH, I, dHprop)
   }
 
-  def ei(i: IntExpr) = {
-    val n = mkIntConst("N2")
-    val e: FuncDecl[BoolSort] = mkVec("vec_e", mkBoolSort())
+def sum_func_dh_arr(pos1: BitVecArr, pos2: BitVecArr) = {
+    val sum_f = mkFuncDecl(
+      "sum",
+      Array(mkIntSort(), mkIntSort()): Array[Sort],
+      mkRealSort()
+    )
+    val i: Expr[IntSort] = mkIntConst("i")
+    val j: Expr[IntSort] = mkIntConst("j")
 
-    // e(i) = true if n = i else e(i) = false
-    val qtf: Quantifier =
-      forall_z3(Array(n).asInstanceOf[Array[Expr[Sort]]], e(i) === (n === i))
-    (e, qtf)
+    import ImplicitConv.int2mkint
+    val numProp = i >= 0 && (j >= 0)
+//    use implicits for mkInt
+    import ImplicitConv.int2mkint
+
+    // widening: make the result weaker: a i >=0,sum i j >0 -> sum i+1 j >0
+    // need a way to update upper bound
+    val prop =
+      (i <= j) ==> ((sum_f(i, j) >= 0) && (sum_f(i, j) === sum_f(i + 1, j) + iverB(
+        mkSelect(pos1, i) !== mkSelect(pos2, i)
+      )))
+
+    val prop2 = i > j ==> (sum_f(i, j) === 0)
+
+    val qtfDec = forall_z3(Array(i, j), prop && prop2)
+    // (sum_f, numProp && qtf)
+    (sum_f, numProp && qtfDec)
   }
-
-  // ⊕ for xor
-  def xor(a: FuncDecl[BoolSort], b: FuncDecl[BoolSort]) = {
-    val i = mkIntConst("idx_xor")
-    val e: FuncDecl[BoolSort] = mkVec("vec_xor", mkBoolSort())
-
-    // e(i) = true if n = i else e(i) = false
-    val qtf: Quantifier =
-      forall_z3(Array(i).asInstanceOf[Array[Expr[Sort]]], e(i) === (mkXor(a(i), b(i))))
-    (e, qtf)
-  }
-
-  // arrayExample2
-  def mkArrayVec(name: String) = {
-    val arr: ArrayExpr[IntSort, BoolSort] = mkArrayConst(name, mkIntSort(), mkBoolSort())
-    arr
-  }
-
-  // xor for arr
-  def xor_arr(a: ArrayExpr[IntSort, BoolSort], b: ArrayExpr[IntSort, BoolSort]) = {
-    val i = mkIntConst("idx_xor")
-    val xorRes = mkArrayVec("vec_xor")
-
-    // e(i) = true if n = i else e(i) = false
-
-    // won't work with all index?
-    // mkStore(e, i, mkXor(mkSelect(a, i), mkSelect(b, i)))
-
-    val qtf: Quantifier =
-      forall_z3(
-        Array(i).asInstanceOf[Array[Expr[Sort]]],
-        mkSelect(xorRes, i) === (mkXor(mkSelect(a, i), mkSelect(b, i)))
-      )
-    (xorRes, qtf)
-  }
-
-  // premise is bad
-  def ei_arr(i: IntExpr) = {
-    val n = mkIntConst("N2")
-    val e = mkArrayVec("vec_e")
-
-    // e(i) = true if n = i else e(i) = false
-    // val r = mkStore(e, i, n === i)
-    // mkSelect(e, i)=== n === i
-    val qtf: Quantifier =
-      forall_z3(
-        Array(n).asInstanceOf[Array[Expr[Sort]]],
-        ((n === i) ==> mkSelect(e, i) === mkTrue()) && ((n !== i) ==> mkSelect(e, i) === mkFalse())
-      )
-    (e, qtf)
-  }
-
-}
+ */
