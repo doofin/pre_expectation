@@ -75,7 +75,7 @@ object z3example {
       null
     )
 
-    z3CheckApi.checkBoolExpr(ctx, Seq(zz))
+    z3CheckApi.checkBoolExpr(ctx, formulas = Seq(zz), goals = List(Status.SATISFIABLE))
 
     val y = ctx.mkForall(
       xs.asInstanceOf[Array[Expr[_]]],
@@ -115,7 +115,7 @@ object z3example {
     )
     val qtf = forall_z3(Array(i, n), prop)
     //    (sum_f, qtf)
-    z3CheckApi.checkBoolExpr(ctx, Seq(qtf))
+    z3CheckApi.checkBoolExpr(ctx, formulas = Seq(qtf), goals = List(Status.SATISFIABLE))
   }
 
   def array_aj(B: z3.RealExpr) = {

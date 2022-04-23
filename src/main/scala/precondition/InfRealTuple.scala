@@ -11,7 +11,7 @@ object InfRealTuple {
 
   lazy val thisCtx = newZ3ctx()
 
-  val inftyTup_+ = TupNum(thisCtx.mkReal(1) -- true)
+  val posInf = TupNum(thisCtx.mkReal(1) -- true)
 
   val zeroTup = TupNum(thisCtx.mkReal(0) -- false)
 

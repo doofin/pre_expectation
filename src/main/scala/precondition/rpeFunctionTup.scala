@@ -58,7 +58,7 @@ object rpeFunctionTup {
         import ImplicitConv._
         (sum1 / mkReal(d.size), sideCond)
 
-      // for U([N])=U(1..N)
+      // for U([N])=U(1..N) , just use the middle one
       case AssigRandInt(x1, x2, n) =>
         val mid = n / mkInt(2)
         val r = E.copy(thisTup = E.thisTup.substitute(x1, mid).substitute(x2, mid))
@@ -80,7 +80,7 @@ object rpeFunctionTup {
         val res: TupNum =
           iverB(e1 && e2) * t1 + (iverB(e1.neg && e2.neg) * t2) + (iverB(
             e1 !== e2
-          ) * InfRealTuple.inftyTup_+)
+          ) * InfRealTuple.posInf)
         (res, sc1 ++ sc2)
       case WhileSmtTup(invariantRhs, (e1, e2), whileBd) =>
         // put I and cond as some side condition,apply rpe for stmt inside while
@@ -88,18 +88,26 @@ object rpeFunctionTup {
         val (rpe_bd_I, rpe_bd_I_sideCond) = rpeF(f_bij)(whileBd, invariantRhs, sideCond)
 
         import ImplicitConv._
-        // test cases:
+        /* p13.(1) original */
+        val sideCondNew: BoolExpr = theorem7p11_lhs(e1, e2, rpe_bd_I, E) <= invariantRhs
+
+        /* test cases for sgd: */
         // val sideCondNew: BoolExpr = TupNum(mkReal(0)) <= invariantRhs // unsat,ok
         // val sideCondNew: BoolExpr =
         //   invariantTup_lhs(e1, e2, rpe_bd_I, E) <= InfRealTuple.inftyTup_+ // unsat,ok
 
-        // p13.(1)
-        val sideCondNew: BoolExpr = theorem7p11_lhs(e1, e2, rpe_bd_I, E) <= invariantRhs
+        /* test cases for hwalk: */
+        // val sideCondNew: BoolExpr = mkReal(0) <= invariantRhs
+
+        // ukn even rm exp
+        // val sideCondNew: BoolExpr = theorem7p11_lhs(e1, e2, rpe_bd_I, E) <= invariantRhs
+        // val sideCondNew: BoolExpr = theorem7p11_lhs(e1, e2, rpe_bd_I, E) <= InfRealTuple.inftyTup_+
 
         // val sideCondNew: BoolExpr = invariantTup_lhs_i1(e1, e2, rpe_bd_I, E) <= invariantRhs
         // val sideCondNew: BoolExpr = InfRealTuple.inftyTup_+ <= InfRealTuple.inftyTup_+ // unsat,ok
         // val sideCondNew: BoolExpr = InfRealTuple.inftyTup_+ <= invariantRhs // ukn
         // val sideCondNew: BoolExpr = invariantTup_lhs(e1, e2, rpe_bd_I, E) <= InfRealTuple.inftyTup_+
+
         // just return invariant due to TH.7 at p.11 because we have proven the side condition
         rpeF(f_bij)(whileBd, invariantRhs, (sideCond :+ sideCondNew) ++ rpe_bd_I_sideCond)
     }

@@ -34,59 +34,68 @@ object z3CheckApi {
    *
    * xs foreach { s => check(ctx, s) } } */
 
-  /**
-   * https://smtlib.cs.uiowa.edu/examples.shtml
-   *
-   * if premise is not unsat (premise is sat or unknown) ,it's fine
-   */
   def checkBoolExpr(
       ctx: Context,
-      xs: Seq[BoolExpr],
-      goals: List[Status] = List(Status.SATISFIABLE),
-      goalMsg: String = "",
-      printSAT: Boolean = false,
-      printSmtStr: Boolean = true,
-      premise: Seq[BoolExpr] = Seq(),
-      timeout: Int = 30
+      premises: Seq[BoolExpr] = Seq(),
+      formulas: Seq[BoolExpr],
+      goals: List[Status],
+      desc: String = "",
+      printSATmodel: Boolean = false,
+      printSmtStr: Boolean = false,
+      timeout: Int = 5
   ) = {
     // println("checkBoolCtx")
-    val r = check(ctx, xs, printSAT, printSmtStr = printSmtStr, timeout = timeout * 1000)
-    println(s"result: ${r} , goal: ${goals}  , description : " + goalMsg)
+    val r = check(
+      ctx,
+      premises ++ formulas,
+      printSATmodel,
+      printSmtStr = printSmtStr,
+      timeout = timeout * 1000
+    )
+    val resMsg =
+      if (goals contains r)
+        s"ok ! result: ${r} , goal: ${goals}"
+      else s"failed ! result: ${r} , goal: ${goals}"
+
+    println(resMsg + (if (desc.nonEmpty) ",description: " + desc else ""))
     // val msg = if (goals contains r) "goal achieved !" else s"goal failed ! result ${r} != ${goals}"
     // println(msg)
 
-    if (premise.nonEmpty) {
-      val r = check(ctx, premise, printSAT, printSmtStr = printSmtStr, timeout = 5000)
-      val msg =
-        if (r != Status.UNSATISFIABLE) " premise is consistent"
-        else " premise is bad"
-      println("checking premise (sat or unknown) : " + msg)
+    // check premise. if premise is not unsat (premise is sat or unknown) ,it's fine
+    if (premises.nonEmpty) {
+      val r = check(ctx, premises, true, printSmtStr = printSmtStr, timeout = 5000)
+      /* val rn =
+        check(
+          ctx,
+          premise.map(x => ctx.mkNot(x)),
+          true,
+          printSmtStr = printSmtStr,
+          timeout = 5000
+        ) */
+
+      // println("neg of premise : ", rn)
+
+      // println("premise model : ", r)
+      val premOk = r != Status.UNSATISFIABLE
+      if (!premOk) println(" premise is bad")
+
     } else {
       println("skip sanity check on premise")
     }
   }
 
-  @deprecated
-  def getProofVals(ctx: Context, f: BoolExpr) = {
-    // https://stackoverflow.com/questions/29577754/getting-proof-from-z3py
-    val s = ctx.mkSolver
-    s.add(f)
-    // s.setpa
-    s.getProof()
-  }
-
   private def check(
       ctx: Context,
-      fs: Seq[BoolExpr],
-      printSAT: Boolean = false,
-      printSmtStr: Boolean = true,
+      formulas: Seq[BoolExpr],
+      printSATmodel: Boolean = false,
+      printSmtStr: Boolean = false,
       timeout: Int = 2500000
   ) = {
     val s = ctx.mkSolver
     val p = ctx.mkParams()
     p.add("timeout", timeout)
     s.setParameters(p)
-    fs foreach (f => s.add(f))
+    formulas foreach (f => s.add(f))
 
     val statusR = s.check()
     val checkRes = statusR match {
@@ -101,15 +110,12 @@ object z3CheckApi {
         // println(("UNKNOWN after checking for " + "timeout " + timeout))
         "UNKNOWN"
       case Status.SATISFIABLE =>
-        if (!printSAT) encloseDebug("model str:") {
+        if (printSATmodel) encloseDebug("model str:") {
           println(s.getModel().toString())
         }
         "SATISFIABLE"
       case x => "unknown : " + x.toString()
     }
-
-    /* val pf = Try(s.getProof()) match { case Failure(exception) => "no proof" case Success(value)
-     * => value.toString() } */
 
     if (printSmtStr)
       encloseDebug("smt-lib2 str", true) {
@@ -128,7 +134,19 @@ object z3CheckApi {
       null,
       null
     )
-    //    println(fs.toList map (x => x.toString))
+    println(fs.toList map (x => x.toString))
+    // println("parseSmtlibStr: ", fs)
+    assert(fs.length > 0, "parse smtlib failed!")
     fs(0)
   }
 }
+
+/*   @deprecated
+  def getProofVals(ctx: Context, f: BoolExpr) = {
+    // https://stackoverflow.com/questions/29577754/getting-proof-from-z3py
+    val s = ctx.mkSolver
+    s.add(f)
+    // s.setpa
+    s.getProof()
+  }
+ */

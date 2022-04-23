@@ -20,10 +20,10 @@ object issuesAndTests {
     // val (sumFuncInst, sumFunc_prop) = sum_func_dec(a_j)
 
     val res = sumFuncInst(mkInt(0), T)
-    val qtf = (aj_prop && sumFunc_prop) ==> (mkReal(0) <= res)
     z3api.z3CheckApi.checkBoolExpr(
       InfRealTuple.thisCtx,
-      Seq(qtf.neg),
+      premises = Seq(aj_prop, sumFunc_prop),
+      formulas = Seq((mkReal(0) <= res).neg),
       goals = List(Status.UNSATISFIABLE)
     )
   }
@@ -32,10 +32,10 @@ object issuesAndTests {
   // 0 * inf=0
   def zeroMulInf() = {
     import ImplicitConv._
-    val qtf = TupNum(mkReal(0)) * InfRealTuple.inftyTup_+ === TupNum(mkReal(0))
+    val qtf = TupNum(mkReal(0)) * InfRealTuple.posInf === TupNum(mkReal(0))
     z3api.z3CheckApi.checkBoolExpr(
       InfRealTuple.thisCtx,
-      Seq(qtf.neg),
+      formulas = Seq(qtf.neg),
       goals = List(Status.UNSATISFIABLE)
     )
   }
@@ -48,13 +48,13 @@ object issuesAndTests {
     val t0 = mkInt(0)
 
     // if cond true then 1 else 0. cond is false,so iverB is 0
-    val q2 = TupNum(iverB(t0 !== t0)) * inftyTup_+ === TupNum(mkReal(0))
-    val q3 = inftyTup_+ * TupNum(iverB(t0 !== t0)) === TupNum(mkReal(0))
+    val q2 = TupNum(iverB(t0 !== t0)) * posInf === TupNum(mkReal(0))
+    val q3 = posInf * TupNum(iverB(t0 !== t0)) === TupNum(mkReal(0))
 
     // val qtf = TupNum(mkReal(0)) * InfRealTuple.infty_+ === TupNum(mkReal(0))
     z3api.z3CheckApi.checkBoolExpr(
       InfRealTuple.thisCtx,
-      Seq(q2.neg, q3.neg),
+      formulas = Seq(q2.neg, q3.neg),
       goals = List(Status.UNSATISFIABLE)
     )
   }
@@ -67,12 +67,12 @@ object issuesAndTests {
     val t2 = mkRealConst("t2")
 
     // if cond true then 1 else 0. cond is false,so iverB is 0
-    val q2 = TupNum(iverB(t0 + 1 !== t1 + 1)) * t2 <= TupNum(iverB(t0 !== t1)) * inftyTup_+
+    val q2 = TupNum(iverB(t0 + 1 !== t1 + 1)) * t2 <= TupNum(iverB(t0 !== t1)) * posInf
 
     // val qtf = TupNum(mkReal(0)) * InfRealTuple.infty_+ === TupNum(mkReal(0))
     z3api.z3CheckApi.checkBoolExpr(
       InfRealTuple.thisCtx,
-      Seq(q2.neg),
+      formulas = Seq(q2.neg),
       goals = List(Status.UNSATISFIABLE)
     )
   }
@@ -87,16 +87,16 @@ object issuesAndTests {
     val e1 = t0 < T
     val e2 = t1 < T
     // if cond true then 1 else 0. cond is false,so iverB is 0
-    val q2 = TupNum(iverB(e1 && e2)) * (TupNum(iverB(t0 + 1 !== t1 + 1)) * inftyTup_+) + TupNum(
+    val q2 = TupNum(iverB(e1 && e2)) * (TupNum(iverB(t0 + 1 !== t1 + 1)) * posInf) + TupNum(
       iverB(e1 !== e2)
-    ) * inftyTup_+ <= TupNum(
+    ) * posInf <= TupNum(
       iverB(t0 !== t1)
-    ) * inftyTup_+
+    ) * posInf
 
     // val qtf = TupNum(mkReal(0)) * InfRealTuple.infty_+ === TupNum(mkReal(0))
     z3api.z3CheckApi.checkBoolExpr(
       InfRealTuple.thisCtx,
-      Seq(q2.neg),
+      formulas = Seq(q2.neg),
       goals = List(Status.UNSATISFIABLE)
     )
   }
@@ -119,7 +119,7 @@ object issuesAndTests {
 
 // the original
 // unsat,ok for some lhs
-    val tup: TupNum = iverB(t(0) !== t(1)) * inftyTup_+ + (iverB(t(0) === t(1)) *
+    val tup: TupNum = iverB(t(0) !== t(1)) * posInf + (iverB(t(0) === t(1)) *
       ((w(0) - w(1)).norm() + sum0toT))
 
     // unsat,ok
@@ -163,7 +163,7 @@ object issuesAndTests {
 
     // [verifies] [e1 != e2] * inf <= I
     val I_lhs7: TupNum =
-      iverB(e1 !== e2) * inftyTup_+
+      iverB(e1 !== e2) * posInf
 
     // rpe_bd_I // ukn
     I_lhs5
@@ -178,7 +178,13 @@ object issuesAndTests {
     val qtf: Quantifier =
       forall_z3(Array(n).asInstanceOf[Array[Expr[Sort]]], mkSelect(e, n) === mkTrue())
     val qr = mkSelect(e, mkInt(1)) === mkTrue()
-    z3api.z3CheckApi.checkBoolExpr(InfRealTuple.thisCtx, Seq((qtf ==> qr).neg))
+
+    z3api.z3CheckApi.checkBoolExpr(
+      InfRealTuple.thisCtx,
+      premises = Seq(qtf),
+      formulas = Seq(qr),
+      goals = List(Status.UNSATISFIABLE)
+    )
   }
 
   def testAll = {

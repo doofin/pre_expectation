@@ -5,7 +5,7 @@ import org.scalatest.funsuite._
 class testExample extends AnyFunSuite {
   test("smt_z3") {
     // issuesAndTests.testarr()
-    hwalkExampleTup.test
+    // hwalkExampleTup.test
 //    smt_z3.run
 //    rpeSMT.test
 //    z3java.parserExample1()

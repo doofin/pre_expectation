@@ -34,12 +34,12 @@ object hwalkExampleTup {
     val K1 = mkIntConst("K1")
     val K2 = mkIntConst("K2")
 
-    val i1 :: i2 :: Nil = mkSymList(2, "s", mkIntConst)
+    val i1 :: i2 :: Nil = mkSymList(2, "i", mkIntConst)
 
     val (f_bij, f_bij_prop) = lemmas.f_bijection_int()
     val rpeF_inst = rpeF(f_bij) _
 
-    val (pos1, pos2, dh, invar, invarProps) = hwalkInvariantUni(N, k1, k2, K1, K2)
+    val (pos1, pos2, dh, invar, invarProps, exp) = hwalkInvariantUni(N, k1, k2, K1, K2)
 
     // e(i)
     val (ei1, ei1p) = ei_uni(i1)
@@ -49,15 +49,16 @@ object hwalkExampleTup {
     val (xor_r1, xor1P) = xor_uni(pos1, ei1)
     val (xor_r2, xor2P) = xor_uni(pos2, ei2)
 
-    val premises: Seq[BoolExpr] =
-      Seq(ei1p) //  ei1p is bad
+    // val premises: Seq[BoolExpr] =
+    //   Seq(ei1p) //  ei1p is bad
 
     // val premises: Seq[BoolExpr] =
     //   Seq(f_bij_prop, invarProps)
 
     // Seq(f_bij_prop, invarProps, ei1p) //  ei1p is bad
-    // val premises: Seq[BoolExpr] =
-    //   Seq(f_bij_prop, invarProps, ei1p, ei2p, xor1P, xor2P)
+    val premises: Seq[BoolExpr] =
+      Seq(N >= 0, f_bij_prop, invarProps, ei1p, ei2p, xor1P, xor2P)
+
     val while_bd = WhileSmtTup(
       invar,
       (k1 < K1, k2 < K2),
@@ -80,8 +81,6 @@ object hwalkExampleTup {
 
     // by TH.7.should be auto derived from I_gen
 
-    val premise = premises.reduce(_ && _)
-
     // p13. rpe(sgd,|w1-w2|) <= 2L/n sum
     val (goalLhs, sideConds) = rpeF_inst(
       while_bd,
@@ -93,24 +92,27 @@ object hwalkExampleTup {
 
     // rhs of p13. rpe(sgd,|w1-w2|) <= 2L/n sum, sum 0 T - 1 a_j
 
-    val finalGoal = (premise ==> sideCond) // unsat,unk after changes of infty*0
+    // val finalGoal = (premise ==> sideCond) // unsat,unk after changes of infty*0
+    val finalGoal = sideCond.neg // unsat,unk after changes of infty*0
 
-    (premises, finalGoal.neg)
-  }
-
-  def test = {
-    val (prem, propWithPrem) = genSMTterms()
-
-    val allPrem = prem.reduce(_ && _)
+    val goal0 = N < 0
+    val goal1 = (exp >= 0).neg //unknow
+    // (premises, finalGoal.neg) //finalGoal.neg
 
     z3CheckApi.checkBoolExpr(
       ctx,
-      Seq(propWithPrem),
+      premises = premises,
+      formulas = Seq(goal1),
       List(Status.UNSATISFIABLE), // Status.UNKNOWN
-      "rpe (while k < K do bd, d H) <= I", // "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
-      premise = prem,
-      printSmtStr = false
+      "rpe (while k < K do bd, d H) <= I" // "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
+      // printSmtStr = true,
+      // printSATmodel = true
     )
+  }
+
+  def test = {
+    genSMTterms()
+
   }
 
   /*

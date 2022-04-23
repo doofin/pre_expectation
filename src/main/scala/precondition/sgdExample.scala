@@ -110,7 +110,7 @@ object sgdExample {
     // val finalGoal = (premise ==> ((w1 - w1).norm() === 0)) && (premise ==> sideCond) // ok
     // val finalGoal = (premise ==> (goalRhs <= goalRhs)) && (premise ==> sideCond) // ok
     // val finalGoal = (premise ==> ((w1 === w2))) && (premise ==> sideCond) // unknown
-    val finalGoal = (premise ==> sideCond) // unk after changes of infty*0
+    val finalGoal = sideCond // unk after changes of infty*0
     // placeholder goal
     // val finalGoal = (premise ==> (mkReal(0) <= goalRhs)) && (premise ==> sideCond) // unknown
 
@@ -152,10 +152,10 @@ object sgdExample {
 
     z3CheckApi.checkBoolExpr(
       ctx,
+      premises = prem,
       Seq(propWithPrem),
       List(Status.UNSATISFIABLE), // Status.UNKNOWN
       "rpe(sgd,|w1-w2|) <= 2L/n sum", // "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
-      premise = prem,
       printSmtStr = false
     )
   }

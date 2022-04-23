@@ -16,6 +16,23 @@ object hwalkLemmas {
 
   val vec_nth_bool = vecSelect("vec_nth_b", mkBoolSort())
 
+  def vec_nth_update() = {
+    // update: vec,ith,item => vec
+
+    val n = mkIntConst("N2") // index of array
+    val e = newVecBool("vec_e")
+    val b = mkBoolConst("b")
+
+    val upd_f = mkFuncDecl(
+      "upd_f",
+      Array(vecSort, mkIntSort(), mkBoolSort()): Array[Sort],
+      vecSort
+    )
+
+    val qtf = vec_nth_bool(upd_f(e, n, b), n) === b
+    val qa = forall_z3(Array(e, n, b).asInstanceOf[Array[Expr[Sort]]], qtf)
+    (upd_f, qa)
+  }
   // sum for dH at p17 as uninterpreted type
   def sum_func_dh_uni(pos1: Expr[VecType], pos2: Expr[VecType]) = {
     val sum_f = mkFuncDecl(
@@ -47,9 +64,7 @@ object hwalkLemmas {
   // req: len dH = N
   // pos:list of bool encode as vec or array/native bitvector
 
-  def hwalkInvariantUni(N: IntExpr,k1: IntExpr, k2: IntExpr, K1: IntExpr, K2: IntExpr) = {
-    
-    val n = mkIntConst("N1")
+  def hwalkInvariantUni(N: IntExpr, k1: IntExpr, k2: IntExpr, K1: IntExpr, K2: IntExpr) = {
 
     val pos1 = newVecBool("vec_pos1")
     val pos2 = newVecBool("vec_pos2")
@@ -67,12 +82,14 @@ object hwalkLemmas {
             N + 1
           )
         ),
-        mkITE((K1 - k1) >= 0, K1 - k1, mkInt(0))
+        mkInt(1) //mkITE((K1 - k1) >= 0, K1 - k1, mkInt(0))
       ).asInstanceOf[RealExpr]
 
-    val I: TupNum =
-      iverB(k1 !== k2) * InfRealTuple.inftyTup_+ + (iverB(k1 === k2) * dH * exp)
-    (pos1, pos2, dH, I, dHprop)
+    // original
+    val invariant: TupNum =
+      iverB(k1 !== k2) * InfRealTuple.posInf + (iverB(k1 === k2) * dH * exp)
+
+    (pos1, pos2, dH, invariant, dHprop, exp)
   }
 
   // ⊕ for xor
@@ -95,22 +112,40 @@ object hwalkLemmas {
 
   /**
     * UninterpretedSort
-    * @param i
-    * @return
+    * @param i : ith is one 
+    * @return`  
     */
   def ei_uni(i: IntExpr) = {
-    val n = mkIntConst("N2")
+    val n = mkIntConst("N2") // index of array
     val e = newVecBool("vec_e")
 
-    // forall n, if n = i then e(i) = true else e(i) = false
-    val qtf: Quantifier =
+    val (upd_f, upd_f_qtf) = vec_nth_update()
+
+    //also vec_nth_bool(upd_f(e, n, n === i), n) === (n === i) is unknown
+    val qtf2: Quantifier =
       forall_z3(
         Array(n).asInstanceOf[Array[Expr[IntSort]]],
-        ((n === i) ==> vec_nth_bool(e, i) === mkTrue()) && ((n !== i) ==> vec_nth_bool(
-          e,
-          i
-        ) === mkFalse())
+        e === upd_f(e, n, n === i) //
       )
-    (e, qtf)
+
+    // forall n, if n = i then e(i) = true else e(i) = false
+    /*     val qtf: Quantifier =
+      forall_z3(
+        Array(n).asInstanceOf[Array[Expr[IntSort]]],
+        (
+          ((n === i) ==> vec_nth_bool(e, n) === mkTrue()) && ((n !== i) ==> vec_nth_bool(
+            e,
+            n
+          ) === mkFalse())
+        )
+      )
+
+    val m1 = mkIntConst("m1") // index of array
+    val m2 = mkIntConst("m2") // index of array
+    val q2 = vec_nth_bool(e, m1) !== vec_nth_bool(e, m2)
+     */
+    // len(e) ==
+    // (e, q2 ==> qtf)
+    (e, qtf2 && upd_f_qtf)
   }
 }

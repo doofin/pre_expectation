@@ -221,7 +221,7 @@ to make ( w1 - w1).norm() === 0 work :
     // ==> rpe(while e do bd, E) ≤ I.
     val I_lhs: TupNum =
       TupNum(iverB(e1 && e2)) * rpeApplied +
-        (TupNum(iverB(e1.neg && e2.neg)) * E) + (iverB(e1 !== e2) * inftyTup_+)
+        (TupNum(iverB(e1.neg && e2.neg)) * E) + (iverB(e1 !== e2) * posInf)
 
     I_lhs
   }
@@ -246,7 +246,7 @@ to make ( w1 - w1).norm() === 0 work :
 
 //    terms I in p.13
 // TupNum(iverB(t(0) !== t(1))) * inftyTup_+ +
-    val tup: TupNum = TupNum(iverB(t(0) !== t(1))) * inftyTup_+ + (TupNum(
+    val tup: TupNum = TupNum(iverB(t(0) !== t(1))) * posInf + (TupNum(
       iverB(t(0) === t(1))
     ) *
       ((w(0) - w(1)).norm() + sum0toT))
@@ -456,9 +456,7 @@ to make ( w1 - w1).norm() === 0 work :
     arr
   }
 // integers {0, . . . , N − 1}
-  def U()={
-
-  }
+  def U() = {}
 }
 
 /*
