@@ -1,4 +1,5 @@
 package precondition
+
 import com.doofin.stdScala._
 import com.microsoft.z3
 import com.microsoft.z3._
@@ -81,6 +82,24 @@ object hwalkTests {
       ).asInstanceOf[RealExpr]
 
     val invs = Seq(
+      ("N >= -1", N >= -1), //ok
+      ( // 3rd term at lhs
+        "iverB((k1 < K1) !== (k2 < K2)) * posInf <= iverB(k1 !== k2) * posInf + (iverB(k1 == k2) * dH)",
+        iverB((k1 < K1) !== (k2 < K2)) * InfRealTuple.posInf <= iverB(
+          k1 !== k2
+        ) * InfRealTuple.posInf + (iverB(
+          k1 === k2
+        ) * dH) // unk
+      ),
+      ( // 2nd term at lhs
+        "iverB((k1 >= K1) && (k2 >= K2)) * dH <= iverB(k1 !== k2) * posInf + (iverB(k1 == k2) * dH)",
+        iverB((k1 >= K1) && (k2 >= K2)) * dH <= iverB(
+          k1 !== k2
+        ) * InfRealTuple.posInf + (iverB(
+          k1 === k2
+        ) * dH) // ok
+      ),
+      ("1<=iverB(k1 !== k2) *inf", mkReal(1) <= (iverB(k1 !== k2) * InfRealTuple.posInf)), // unk
       ("0<=iverB(k1 !== k2) *inf", mkReal(0) <= (iverB(k1 !== k2) * InfRealTuple.posInf)), // ok
       ("0<=iverB(k1 === k2) * dH", mkReal(0) <= iverB(k1 === k2) * dH), // ok
       ("0<= dH", mkReal(0) <= dH), // ok
@@ -89,7 +108,7 @@ object hwalkTests {
         mkReal(0) <= iverB(k1 !== k2) * InfRealTuple.posInf + (iverB(k1 === k2) * dH) // ok
       ),
       (
-        "0<=iverB(k1 !== k2) * InfRealTuple.posInf + (iverB(k1 === k2) * dH * exppos",
+        "0<=iverB(k1 !== k2) * posInf + (iverB(k1 === k2) * dH *  posReal",
         mkReal(0) <= iverB(k1 !== k2) * InfRealTuple.posInf + (iverB(k1 === k2) * dH * posReal)
       ), //ok
       ("0<=1^max(K1 - k1, 0)", exp1Gt0 >= 0), // ok
@@ -128,7 +147,7 @@ object hwalkTests {
     ) //ok
 
     // val r = expGt0()
-    invs.drop(6) foreach { case (desc, fml) =>
+    invs.take(3) foreach { case (desc, fml) =>
       z3CheckApi.checkBoolExpr(
         thisCtx,
         premises = premises,

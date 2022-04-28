@@ -10,7 +10,8 @@ class testSgd extends AnyFunSuite {
     sgdExampleTup.test
     // sgdExample.test
 //    z3java.parserExample1()
-    val ctx = z3Utils.newZ3ctx()
+    // val ctx = z3Utils.newZ3ctx()
     // z3example.quantifierExample1(ctx)
+    // sgdTests.test
   }
 }

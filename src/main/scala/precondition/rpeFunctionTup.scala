@@ -94,7 +94,7 @@ object rpeFunctionTup {
         /* test cases for sgd: */
         // val sideCondNew: BoolExpr = TupNum(mkReal(0)) <= invariantRhs // unsat,ok
         // val sideCondNew: BoolExpr =
-        //   invariantTup_lhs(e1, e2, rpe_bd_I, E) <= InfRealTuple.inftyTup_+ // unsat,ok
+        //   theorem7p11_lhs(e1, e2, rpe_bd_I, E) <= InfRealTuple.posInf // unsat,ok
 
         /* test cases for hwalk: */
         // val sideCondNew: BoolExpr = mkReal(0) <= invariantRhs

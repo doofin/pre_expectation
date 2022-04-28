@@ -156,7 +156,7 @@ object sgdExample {
       Seq(propWithPrem),
       List(Status.UNSATISFIABLE), // Status.UNKNOWN
       "rpe(sgd,|w1-w2|) <= 2L/n sum", // "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
-      printSmtStr = false
+      printSmtlib = false
     )
   }
 

@@ -65,7 +65,7 @@ object sgdExampleTup {
 
     // testing invariant_annonotation in while stmt and also rhs of p13(1)
     val invariant_annon =
-      invariantRhsTup_i1(List(t1, t2), List(w1, w2), T, sumAjF)
+      invariantRhsTup(List(t1, t2), List(w1, w2), T, sumAjF)
 
     val whileBd_relational = StmtSmtList(
       List(
@@ -108,8 +108,6 @@ object sgdExampleTup {
     val premises: Seq[BoolExpr] =
       Seq(lipschez_premise, lemmas.vecPremise, varProps, T_prem) ++ sumProps
 
-    val premise = premises.reduce(_ && _)
-
     // p13. rpe(sgd,|w1-w2|) <= 2L/n sum
     val (goalLhs, sideConds) = rpeF_inst(
       sgdProgram,
@@ -123,39 +121,24 @@ object sgdExampleTup {
     // rhs of p13. rpe(sgd,|w1-w2|) <= 2L/n sum, sum 0 T - 1 a_j
     val goalRhs = sumAjF(0, T - 1)
 
-    // println("sideCond :", sideCond.toString())
-    // println("goal2lhs <= goal2rhs")
-    // println(goal2lhs <= goal2rhs)
-
-    // val finalGoal = (premise ==> ((w1 - w1).norm() === 0)) && (premise ==> sideCond) // ok
-    // val finalGoal = (premise ==> (goalRhs <= goalRhs)) && (premise ==> sideCond) // ok
-    // val finalGoal = (premise ==> ((w1 === w2))) && (premise ==> sideCond) // unknown
-
-    // real goal
     // val finalGoal =
     //   (premise ==> (goalLhs <= goalRhs)) && (premise ==> sideCond) // unknown for sgd,ok for sgd1
 
     val finalGoal = sideCond // unsat,unk after changes of infty*0
 
-    // placeholder goal
-    // val finalGoal = (premise ==> (mkReal(0) <= goalRhs)) && (premise ==> sideCond) // unknown
-
-//    println("I_lhs : ", I_lhs.toString)
-
-    // (premises, goalOld.neg)
-    (premises, finalGoal.neg)
+    (premises, finalGoal)
   }
 
   def test = {
-    val (prem, propWithPrem) = genSMTterms()
+    val (prem, props) = genSMTterms()
 
     z3CheckApi.checkBoolExpr(
       ctx,
       premises = prem,
-      Seq(propWithPrem),
+      Seq(props.neg),
       List(Status.UNSATISFIABLE), // Status.UNKNOWN
       "rpe(sgd,|w1-w2|) <= 2L/n sum", // "unsat (sat(I_lhs <= I) ~= unsat(not I_lhs <= I))",
-      printSmtStr = false
+      printSmtlib = true
     )
   }
 

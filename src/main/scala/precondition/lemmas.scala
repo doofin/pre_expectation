@@ -49,7 +49,7 @@ object lemmas {
 
   val vec_nth_real: FuncDecl[RealSort] = vecNth("vec_nth_real", mkRealSort())
 
-  val (vec_add, vec_addP) = vec_binOp(_ + _, "+")
+  val (vec_add, vec_addP) = vec_binOp(_ + _, "vecadd")
   val (vec_scalaMul, vec_scalaMulP) = scala_mul_vec()
 
   // norm for vec

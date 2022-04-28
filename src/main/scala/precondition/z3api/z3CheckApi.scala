@@ -1,6 +1,7 @@
 package precondition.z3api
 
 import com.microsoft.z3._
+import com.microsoft.z3
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -10,7 +11,7 @@ import scala.util.Success
 import com.doofin.stdScala._
 
 object z3CheckApi {
-
+  println("z3 ver: ", z3.Version.getString) //4.8.14.0
   /**
    * https://smtlib.cs.uiowa.edu/examples.shtml
    */
@@ -18,7 +19,7 @@ object z3CheckApi {
     val ctx = new Context(Map[String, String]("model" -> "true").asJava)
 
     xs foreach { s =>
-      check(ctx, Seq(parseSmtlibStr(s, ctx)))
+      check(ctx, Seq(parseSmtlib2Str(s, ctx)))
     }
 
     //    ctx.mkRealConst("t1")
@@ -41,15 +42,16 @@ object z3CheckApi {
       goals: List[Status],
       desc: String = "",
       printSATmodel: Boolean = false,
-      printSmtStr: Boolean = false,
+      printSmtlib: Boolean = false,
       timeout: Int = 5
   ) = {
     // println("checkBoolCtx")
+
     val r = check(
       ctx,
       premises ++ formulas,
       printSATmodel,
-      printSmtStr = printSmtStr,
+      printSmtStr = printSmtlib,
       timeout = timeout * 1000
     )
     val resMsg =
@@ -63,7 +65,7 @@ object z3CheckApi {
 
     // check premise. if premise is not unsat (premise is sat or unknown) ,it's fine
     if (premises.nonEmpty) {
-      val r = check(ctx, premises, true, printSmtStr = printSmtStr, timeout = 5000)
+      val r = check(ctx, premises, true, printSmtStr = false, timeout = 5000)
       /* val rn =
         check(
           ctx,
@@ -119,14 +121,27 @@ object z3CheckApi {
 
     if (printSmtStr)
       encloseDebug("smt-lib2 str", true) {
-        println(s.toString)
-        println("smt result:", checkRes)
+//      to_smt2  https://github.com/Z3Prover/z3/blob/81189d6fddd48f43527b0ce388eb33bb0d68b03f/src/api/c%2B%2B/z3%2B%2B.h#L2732
+// solver.ToString() should works in 4.8.4.  :
+        // https://github.com/Z3Prover/z3/issues/1981   https://github.com/Z3Prover/z3/issues/5775
+
+//        s.getAssertions() foreach (println)
+//        s.toString
+//         println(ctx.benchmarkToSMTString())
+        println(s.toString) // smtlib1.x , not 2 ?
+        // println("smt result:", checkRes)
       }
 
     statusR
   }
 
-  private def parseSmtlibStr(s: String, ctx: Context) = {
+  /**
+    * from ctx.parseSMTLIB2String
+    * @param s
+    * @param ctx
+    * @return
+    */
+  def parseSmtlib2Str(s: String, ctx: Context) = {
     val fs = ctx.parseSMTLIB2String(
       s,
       null,
@@ -134,8 +149,10 @@ object z3CheckApi {
       null,
       null
     )
-    println(fs.toList map (x => x.toString))
-    // println("parseSmtlibStr: ", fs)
+//    println("")
+    println("parseSmtlibStr: ", fs.length)
+    println("parseSmtlibStr: ")
+//    fs.toList map (println)
     assert(fs.length > 0, "parse smtlib failed!")
     fs(0)
   }
