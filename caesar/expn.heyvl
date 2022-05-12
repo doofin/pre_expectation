@@ -1,0 +1,13 @@
+domain Exp {
+    func exp(x:Realplus,exponent: Realplus): Realplus
+
+    axiom exp_base forall x:Realplus . exp(x,0) == 1
+    axiom exp_step forall x:Realplus,exponent: Uint. exp(x,exponent + 1) == x * exp(x,exponent-1)
+}
+
+
+//ok without feature datatype
+proc posexp(n:Uint) -> ()
+    down requires ?(n>0)
+    down ensures ?(exp(n,3) >0)
+{}

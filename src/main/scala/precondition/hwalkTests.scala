@@ -56,7 +56,22 @@ object hwalkTests {
   val test_premises = Seq(posReal >= 0, posInt >= 0)
 
   val premises: Seq[BoolExpr] =
-    Seq(N >= 0, dHprop, f_bij_prop, ei1p, ei2p, xor1P, xor2P) ++ test_premises
+    Seq(
+      N >= 0,
+      k1 >= 0,
+      k2 >= 0,
+      K1 >= 1,
+      K2 >= 1
+
+      // K1 >= k1,
+      // K2 >= k2
+      // dHprop,
+      // f_bij_prop,
+      // ei1p,
+      // ei2p,
+      // xor1P,
+      // xor2P
+    ) // ++ test_premises
 
   def runtest() = {
     //  exp>0 ok
@@ -84,12 +99,22 @@ object hwalkTests {
     val invs = Seq(
       ("N >= -1", N >= -1), //ok
       ( // 3rd term at lhs
-        "iverB((k1 < K1) !== (k2 < K2)) * posInf <= iverB(k1 !== k2) * posInf + (iverB(k1 == k2) * dH)",
-        iverB((k1 < K1) !== (k2 < K2)) * InfRealTuple.posInf <= iverB(
+        "iverB((k1 < K1) !== (k2 < K1))  <= iverB(k1 !== k2))",
+        iverB((k1 < K1) !== (k2 < K1)) <= iverB(k1 !== k2) // unk
+      ),
+      ( // 3rd term at lhs
+        "iverB((k1 < K1) !== (k2 < K1)) * posInf <= iverB(k1 !== k2) * posInf + (iverB(k1 == k2) * dH)",
+        iverB((k1 < K1) !== (k2 < K1)) * InfRealTuple.posInf <= iverB(
           k1 !== k2
         ) * InfRealTuple.posInf + (iverB(
           k1 === k2
         ) * dH) // unk
+      ),
+      ( // 3rd term at lhs
+        "iverB((k1 < K1) !== (k2 < K2)) * posInf <= iverB(k1 !== k2) * posInf)",
+        iverB((k1 < K1) !== (k2 < K2)) * InfRealTuple.posInf <= iverB(
+          k1 !== k2
+        ) * InfRealTuple.posInf // unk
       ),
       ( // 2nd term at lhs
         "iverB((k1 >= K1) && (k2 >= K2)) * dH <= iverB(k1 !== k2) * posInf + (iverB(k1 == k2) * dH)",
@@ -124,21 +149,21 @@ object hwalkTests {
         mkInt2Real(mkITE((K1 - k1) >= 0, K1 - k1, mkInt(0))) >= 0
       ),
       (
-        "0<=2r^posReal",
+        "0<=2real^posReal",
         mkPower(
           mkReal(2),
           posReal
         ) >= 0
       ),
       (
-        "0<=2r^posInt",
+        "0<=2real^posInt",
         mkPower(
           mkReal(2),
           posInt
         ) >= 0
       ),
       (
-        "0<=2i^posInt",
+        "0<=2int^posInt",
         mkPower(
           mkInt(2),
           posInt
@@ -147,7 +172,7 @@ object hwalkTests {
     ) //ok
 
     // val r = expGt0()
-    invs.take(3) foreach { case (desc, fml) =>
+    invs.reverse.take(3) foreach { case (desc, fml) =>
       z3CheckApi.checkBoolExpr(
         thisCtx,
         premises = premises,

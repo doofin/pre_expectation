@@ -112,7 +112,7 @@ object z3CheckApi {
         // println(("UNKNOWN after checking for " + "timeout " + timeout))
         "UNKNOWN"
       case Status.SATISFIABLE =>
-        if (printSATmodel) encloseDebug("model str:") {
+        if (false) encloseDebug("model str:") {
           println(s.getModel().toString())
         }
         "SATISFIABLE"

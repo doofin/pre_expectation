@@ -1,0 +1,21 @@
+// ARGS: --down --post "[bounds] * [i=1]" --pre "[bounds] * ([1=i] + [1 < i] * (2/3))" --k 1 --k 1 --invariant "[bounds] * [0 <= n & n <= i] * ((2/3) * invar1 + invar2)"
+// ARGS: --down --post "[n=K]" --pre "1/k[K>0]" --k 1 --k 1 --invariant ""
+nat n;
+nat a;
+
+nat b;
+n:=0;
+a:=0;
+b:=1;
+    while (not(a=b)) {
+        n:=n+1;
+        {a:=0}[0.5]{a:=1};
+        n:=n+1;
+        {b:=0}[0.5]{b:=1};
+    }
+
+
+
+
+
+
