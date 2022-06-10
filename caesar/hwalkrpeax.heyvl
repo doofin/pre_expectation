@@ -1,0 +1,32 @@
+domain ExpInt {
+    func exp(x:Uint,exponent: Uint):Uint
+
+    axiom exp_base forall x:Uint . exp(x,0) == 1
+    axiom exp_step forall x:Uint,exponent: Uint. exp(x,exponent + 1) == x * exp(x,exponent-1)
+}
+
+
+domain Vec{
+    func xor(a:Bool,b:Bool) : Bool
+    axiom xorax1 forall a:Bool,b:Bool . xor(a,b)==ite(a==b,true,false)
+    //ax for vector
+    func nth(x:Vec,i:Uint) : Bool
+    func len(x:Vec) : Uint
+
+    //ax for hwalk
+    func dsum(x:Vec,y:Vec) : Vec  // mkxor?
+    func ei(x:Uint) : Vec
+    axiom dsum_ax1 forall x:Vec,y:Vec,i:Uint . nth( dsum(x,y),i) == xor(nth(x,i), nth(y,i)) 
+    axiom ei_ax1 forall x:Vec ,i:Uint,j:Uint .  nth(ei(i),j) == ite(i==j,true,false)
+}
+
+domain Vecsum{
+    func sum(i:Uint,j:Uint,pos1:Vec,pos2:Vec):Uint
+    axiom sum_ax1 forall pos1:Vec,pos2:Vec,i:Uint,j:Uint . (i<j) →( sum(i,j,pos1,pos2) == (sum(i+1,j,pos1,pos2) + [nth(pos1,i)!=nth(pos2,i)]) )
+    axiom sum_ax2 forall pos1:Vec,pos2:Vec,i:Uint,j:Uint . (i>=j) →( sum(i,j,pos1,pos2) == (sum(i+1,j,pos1,pos2) + [nth(pos1,i)!=nth(pos2,i)]) )
+}
+
+
+// Expected one of "!=", "&&", "(", ")", "*", "+", ",", "-", ";", "<", "<=", "==", ">", ">=", "]",
+ //"axiom", "domain", "down", "ensures", "func", "proc", "requires", "up", "{", "||", "}", 
+ // "←", "→", "↖", "↘", "⊓", or "⊔"

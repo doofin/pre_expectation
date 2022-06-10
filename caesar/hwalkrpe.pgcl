@@ -1,0 +1,40 @@
+// ARGS: --post infty --pre "infty"  --invariant "invar1" --k 1
+
+// compile to pgcl,then add parts for domain,modify type for pos,add precondition
+// pre is invar 
+// ARGS: --post 0 --pre "invar1" --k 1
+// examples/NCH-18/linear/linear01.imp
+
+
+nat k1;
+nat k2;
+nat pos1; // vec
+nat pos2;
+
+nat kk; // K 
+nat n; // N
+
+//const i := unif(1, n+1) // the values in [a,b] with uniform probability.
+//const s:=sum(1,n,pos1,pos2);
+//const dh := 1/n * sum(1,n,pos1,pos2);
+
+//const invar1 := [k1!=k2]*infty + [k1=k2]*dh*exp((n-1)/(n+1),ite(kk>k1,kk,k1));
+const invar1 := [k1=k2]*infty+[k1=k2];
+// i := unif(1, n+1) // the values in [a,b] with uniform probability.
+k1:= 0;
+k2:= 0;
+
+
+//https://philipp15b.github.io/probably/pgcl.html#expressions
+while (k1 <= kk) {
+    i := 1; // the values in [a,b] with uniform probability.
+    //i := unif(1, n+1) // the values in [a,b] with uniform probability.
+    if (not (i=0)) {
+        pos1:=1
+        //pos1:= dsum(pos1,ei(i)) 
+        //pos2:= dsum(pos2,ei(i)) 
+    } else {};
+
+    k1:=kk+1;
+    k2:=kk+1;
+}

@@ -50,6 +50,7 @@ object hwalkLemmas {
 
     // widening: make the result weaker: a i >=0,sum i j >0 -> sum i+1 j >0
     // need a way to update upper bound
+    //i<=j => sum i j = (sum i+1 j ) +[pos1 != pos2]
     val prop =
       (i <= j) ==> ((sum_f(i, j) >= 0) && (sum_f(i, j) === sum_f(i + 1, j) + iverB(
         vec_nth_bool(pos1, i) !== vec_nth_bool(pos2, i)

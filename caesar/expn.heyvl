@@ -11,3 +11,4 @@ proc posexp(n:Uint) -> ()
     down requires ?(n>0)
     down ensures ?(exp(n,3) >0)
 {}
+

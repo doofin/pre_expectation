@@ -1,0 +1,6 @@
+domain Exponentials {
+    func ohfive_exp(exponent: Uint): Realplus
+
+    axiom ohfive_exp_base ohfive_exp(0) == 1
+    axiom ohfive_exp_step forall exponent: Uint. ohfive_exp(exponent + 1) == 0.5 * ohfive_exp(exponent)
+}

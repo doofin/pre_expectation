@@ -1,0 +1,8 @@
+// ARGS: --post 0 --pre "0.2*x" --k 1
+
+nat x;
+nat y;
+
+while (2 <= x) {
+    y:=y+1
+}

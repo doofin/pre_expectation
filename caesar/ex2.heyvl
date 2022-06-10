@@ -1,0 +1,8 @@
+// down en
+
+proc forty_two(x: Uint) -> (y: Uint)
+    down requires ?(x == 41)
+    down ensures ?(y == 42)
+{
+    y = x + 1;
+}

@@ -61,7 +61,7 @@ object hwalkExampleTup {
 
     val while_bd = WhileSmtTup(
       invar,
-      (k1 < K1, k2 < K2),
+      (k1 < K1, k2 < K2), // cond doesn't matter
       StmtSmtList(
         List(
           AssigRandInt(i1, i2, N),

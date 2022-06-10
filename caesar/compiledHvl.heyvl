@@ -1,0 +1,64 @@
+domain ExpInt {
+    func exp(x:Uint,exponent: Uint):Uint
+
+    axiom exp_base forall x:Uint . exp(x,0) == 1
+    axiom exp_step forall x:Uint,exponent: Uint. exp(x,exponent + 1) == x * exp(x,exponent-1)
+}
+
+
+domain Vec{
+    func xor(a:Bool,b:Bool) : Bool
+    axiom xorax1 forall a:Bool,b:Bool . xor(a,b)==ite(a==b,true,false)
+    //ax for vector
+    func nth(x:Vec,i:Uint) : Bool
+    func len(x:Vec) : Uint
+
+    //ax for hwalk
+    func dsum(x:Vec,y:Vec) : Vec  // mkxor?
+    func ei(x:Uint) : Vec
+    axiom dsum_ax1 forall x:Vec,y:Vec,i:Uint . nth( dsum(x,y),i) == xor(nth(x,i), nth(y,i)) 
+    axiom ei_ax1 forall x:Vec ,i:Uint,j:Uint .  nth(ei(i),j) == ite(i==j,true,false)
+}
+
+domain Vecsum{
+    func sum(i:Uint,j:Uint,pos1:Vec,pos2:Vec):Uint
+    axiom sum_ax1 forall pos1:Vec,pos2:Vec,i:Uint,j:Uint . (i<j) →( sum(i,j,pos1,pos2) == (sum(i+1,j,pos1,pos2) + [nth(pos1,i)!=nth(pos2,i)]) )
+    axiom sum_ax2 forall pos1:Vec,pos2:Vec,i:Uint,j:Uint . (i>=j) →( sum(i,j,pos1,pos2) == (sum(i+1,j,pos1,pos2) + [nth(pos1,i)!=nth(pos2,i)]) )
+}
+
+
+// Expected one of "!=", "&&", "(", ")", "*", "+", ",", "-", ";", "<", "<=", "==", ">", ">=", "]",
+ //"axiom", "domain", "down", "ensures", "func", "proc", "requires", "up", "{", "||", "}", 
+ // "←", "→", "↖", "↘", "⊓", or "⊔"
+
+
+var k1: UInt;
+var k2: UInt;
+var pos1: Vec;
+var pos2: Vec;
+var kk: UInt;
+var n: UInt;
+down negate;
+up compare infty;
+k1 = 0;
+k2 = 0;
+up assert ([not(k1=k2)]*infty + [k1=k2]*1 / n * sum(1, n, pos1, pos2)*exp((n-1)/(n+1),ite(kk>k1,kk,k1))) + [k1 == k2];
+up havoc i, k1, k2, pos1;
+up compare ([not(k1=k2)]*infty + [k1=k2]*1 / n * sum(1, n, pos1, pos2)*exp((n-1)/(n+1),ite(kk>k1,kk,k1))) + [k1 == k2];
+if k1 <= kk {
+    i = unif(1,2);
+    if !(i == 0) {
+        pos1 = dsum(pos1,ei(i)) 
+        pos2 = dsum(pos2,ei(i))
+    } else {
+
+    };
+    k1 = kk + 1;
+    k2 = kk + 1;
+    down assert ([not(k1=k2)]*infty + [k1=k2]*1 / n * sum(1, n, pos1, pos2)*exp((n-1)/(n+1),ite(kk>k1,kk,k1))) + [k1 == k2];
+    down assume 0;
+} else {
+
+};
+up assert infty;
+up negate;
