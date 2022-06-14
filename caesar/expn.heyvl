@@ -6,9 +6,14 @@ domain Exp {
 }
 
 
-//ok without feature datatype
+//unsat (without feature datatype)
 proc posexp(n:Uint) -> ()
     down requires ?(n>0)
     down ensures ?(exp(n,3) >0)
 {}
 
+//unknown
+proc posexp1(n:Uint,e:Uint) -> ()
+    down requires ?(n>0 && e>0)
+    down ensures ?(exp(n,e) >0)
+{}
