@@ -1,0 +1,12 @@
+;cvc4 --lang smtlib2 caesar/expposint.smtl2
+;z3 -smt2  caesar/expposint.smtl2
+(set-logic ALL)
+(reset-assertions)
+(declare-const x Int)
+(declare-const y Int)
+(assert (> x 0))
+(assert (> y 0))
+(assert (< y 67108863))
+
+(assert (not (>= (^ x y) 0)))
+(check-sat)

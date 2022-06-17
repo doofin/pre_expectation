@@ -1,0 +1,10 @@
+(set-logic ALL)
+(reset-assertions)
+(declare-const x Real)
+(declare-const y Int)
+(assert (> x 0))
+(assert (> y 0))
+(assert (< y 67108863))
+
+(assert (not (>= (^ x y) 0)))
+(check-sat)
