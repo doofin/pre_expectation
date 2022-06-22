@@ -10,7 +10,7 @@ val typesAndcatsDeps = Seq(
   "org.typelevel" %% "cats-core" % catsV,
   "org.typelevel" %% "cats-free" % catsV,
   "com.chuusai" % "shapeless_2.13" % "2.4.0-M1",
-  "com.github.doofin.stdScala" %% "stdscala" % "c9d19a6db3"
+  "com.github.doofin.stdScala" %% "stdscala" % "-859d080ed9-1"
 )
 
 unmanagedJars in Compile ++= Seq("com.microsoft.z3.jar").map( //"scalaz3-unix-x64-2.12.jar"

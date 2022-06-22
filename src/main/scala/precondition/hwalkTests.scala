@@ -71,7 +71,7 @@ object hwalkTests {
       // ei2p,
       // xor1P,
       // xor2P
-    ) // ++ test_premises
+    ) ++ test_premises
 
   def runtest() = {
     //  exp>0 ok
@@ -168,11 +168,19 @@ object hwalkTests {
           mkInt(2),
           posInt
         ) >= 0
+      ),
+      (
+        "0<=0^0",
+        mkPower(
+          mkInt(0),
+          mkInt(0)
+        ) >= 0
       )
     ) //ok
 
     // val r = expGt0()
-    invs.reverse.take(3) foreach { case (desc, fml) =>
+    val checkList = invs.reverse.take(3) // invs //
+    checkList foreach { case (desc, fml) =>
       z3CheckApi.checkBoolExpr(
         thisCtx,
         premises = premises,

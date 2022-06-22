@@ -32,7 +32,11 @@ domain Vecsum{
  // "←", "→", "↖", "↘", "⊓", or "⊔"
 
 
-var k1: UInt;
+proc name()->()
+    down requires ?(true)
+    down ensures ?(true)
+  {
+   var k1: UInt;
 var k2: UInt;
 var pos1: Vec;
 var pos2: Vec;
@@ -42,23 +46,24 @@ down negate;
 up compare infty;
 k1 = 0;
 k2 = 0;
-up assert ([not(k1=k2)]*infty + [k1=k2]*1 / n * sum(1, n, pos1, pos2)*exp((n-1)/(n+1),ite(kk>k1,kk,k1))) + [k1 == k2];
+up assert ([k1 == k2] * infty) + [k1 == k2];
 up havoc i, k1, k2, pos1;
-up compare ([not(k1=k2)]*infty + [k1=k2]*1 / n * sum(1, n, pos1, pos2)*exp((n-1)/(n+1),ite(kk>k1,kk,k1))) + [k1 == k2];
+up compare ([k1 == k2] * infty) + [k1 == k2];
 if k1 <= kk {
     i = unif(1,2);
     if !(i == 0) {
-        pos1 = dsum(pos1,ei(i)) 
-        pos2 = dsum(pos2,ei(i))
+        pos1 = dsum(pos1,ei(i)); 
+        pos2 = dsum(pos2,ei(i));
     } else {
 
     };
     k1 = kk + 1;
     k2 = kk + 1;
-    down assert ([not(k1=k2)]*infty + [k1=k2]*1 / n * sum(1, n, pos1, pos2)*exp((n-1)/(n+1),ite(kk>k1,kk,k1))) + [k1 == k2];
+    down assert ([k1 == k2] * infty) + [k1 == k2];
     down assume 0;
 } else {
 
 };
 up assert infty;
 up negate;
+  }

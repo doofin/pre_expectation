@@ -2,7 +2,7 @@ domain Exp {
     func exprp(x:Realplus,exponent: Realplus): Realplus
 
     axiom exp_base forall x:Realplus . exprp(x,0) == 1
-    axiom exp_step forall x:Realplus,exponent: Uint. exprp(x,exponent + 1) == x * exprp(x,exponent-1)
+    axiom exp_step forall x:Realplus,exponent: Uint. exprp(x,exponent + 1) == x * exprp(x,exponent)
 }
 
 
@@ -15,8 +15,34 @@ proc posexp(n:Uint) -> ()
 
 */
 
+/*
 //unknown
 proc posexp1(n:Uint,e:Uint) -> ()
     down requires ?(n>0 && e>0)
     down ensures ?(exprp(n,e) >0)
 {}
+*/
+
+
+proc posexp1(n:Uint) ->(res: Realplus)
+    
+    down ensures ?(res >0)
+{
+    res=exprp(n,0);
+}
+
+
+
+proc posexp3(n:Uint,e:Uint) -> (res: Realplus)
+    down requires ?(n>0 && e>=0 && exprp(n,e)>0 && exprp(n,0)>0)
+    down ensures ?(res >0)
+{
+    res=exprp(n,e+1);
+}
+
+proc posexp4(n:Uint,e:Uint) -> (res: Realplus)
+    down ensures ?(res >0)
+{
+    down assume ?(forall x:Realplus,exponent: Uint. exprp(x,exponent ) > 0);
+    res=exprp(n,e+e);
+}
