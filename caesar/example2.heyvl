@@ -7,8 +7,17 @@ proc forty_two(x: Uint) -> (y: Uint)
 
 proc main(x: UInt) -> (y: UInt)
 {
-    up assume x;
-    y = x + 1;
-    //y = forty_two(x);
-    up assert x+1;
+
+  up negate;
+    //x+1=>x+1 
+    up assume x+1;
+
+    //x+1
+    x = x + 1;
+    
+    //x
+    up assert x;
+    //0
+    up negate;
+    //inf
 }
