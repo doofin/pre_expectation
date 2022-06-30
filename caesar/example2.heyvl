@@ -1,0 +1,14 @@
+proc forty_two(x: Uint) -> (y: Uint)
+    down requires ?(x == 41)
+    down ensures ?(y == 42)
+{
+    y = x + 1;
+}
+
+proc main(x: UInt) -> (y: UInt)
+{
+    up assume x;
+    y = x + 1;
+    //y = forty_two(x);
+    up assert x+1;
+}
