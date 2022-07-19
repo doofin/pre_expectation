@@ -1,0 +1,20 @@
+// down en
+
+proc forty_two(x: Uint) -> (y: Uint)
+    down requires x
+    down ensures y
+{
+    
+    y = x + 1; // unsat
+// x <= x+1
+    
+}
+
+
+proc procUp(x: Uint) -> (y: Uint)
+    up requires x
+    up ensures y
+{
+    // x>=x-1
+    y = x - 1; // unsat
+}
