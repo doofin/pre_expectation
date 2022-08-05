@@ -9,20 +9,27 @@ object dslAST {
   sealed trait DslStoreA[A]
 
   sealed trait Expr1
-
   case class Var(nm: String = "") extends Expr1
+  case class LitNum(num: Int) extends Expr1
 
-  case class UpdateVar[T](v: Var, value: T) extends DslStoreA[Unit]
+  case class BinOpVal(v1: Expr1, op: String, v2: Expr1) extends Expr1
+
+  sealed trait BoolExpr
+  case class BinOpBool(v1: Expr1, op: String, v2: Expr1) extends BoolExpr
+  case class BoolConst(b: Boolean) extends BoolExpr
+  case class BoolExprWrp(b: BoolExpr) extends DslStoreA[BoolExpr]
+
+  case class VarAssign[T](v: Var, value: Expr1) extends DslStoreA[Unit]
 
   case class NewVar(name: String = "") extends DslStoreA[Var] //DslStoreA[Var]
-
+  case class If(cond: BoolExpr, s1: DslStore[Unit], s2: DslStore[Unit]) extends DslStoreA[Unit]
   case class While(
       cond: DslStore[Boolean],
       annotation: String,
       body: DslStore[Unit]
   ) extends DslStoreA[Unit]
 
-  case object True extends DslStoreA[Boolean]
+  case object True extends DslStoreA[Boolean] //only give value while write compilers!
 
   case object Skip extends DslStoreA[Unit]
 
@@ -34,8 +41,8 @@ object dslAST {
       case true  => prog >> whileM_(cond, prog)
     }
 
-  def updateVar[T](v: Var, value: T): DslStore[Unit] =
-    liftF[DslStoreA, Unit](UpdateVar[T](v, value))
+  def varAssign[T](v: Var, value: Expr1): DslStore[Unit] =
+    liftF[DslStoreA, Unit](VarAssign[T](v, value))
 
   def newVar(name: String = ""): Free[DslStoreA, Var] = liftF(NewVar(name))
 
@@ -48,6 +55,12 @@ object dslAST {
   ) =
     liftF[DslStoreA, Unit](While(cond, annotation, dslStoreA))
 
-  def true__ = liftF[DslStoreA, Boolean](True)
+  def if_(cond: BoolExpr, s1: DslStore[Unit], s2: DslStore[Unit]) =
+    liftF[DslStoreA, Unit](If(cond, s1, s2))
 
+  def liftBool = liftF[DslStoreA, Boolean] _
+  def liftBoolEx = liftF[DslStoreA, BoolExpr] _
+  def true__ = liftBool(True) // liftF[DslStoreA, Boolean](True)
+
+  liftBoolEx(BoolExprWrp(BoolConst(true)))
 }

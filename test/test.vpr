@@ -1,0 +1,44 @@
+
+
+function foo(x: Int): Int 
+    ensures x <= 0 ==> result == 1
+    ensures x > 0 ==> result == foo(x - 5) + 7 // > x
+
+method test1() 
+{
+    assert foo(3) > 3 
+}
+
+method test2() 
+{
+    lemma(15000) 
+    // assume foo(15000) > 15000
+    assert foo(15000) > 15000
+}
+
+// lemma: forall integers a, foo(a) > a.
+method lemma(a: Int)
+    ensures foo(a) > a // <--- property to prove by induction
+{
+    // a % b
+    // https://www.wikipedia.org/...
+    // (a + b) % b == a % b
+
+    // induction begin: foo(0) > 0
+    // induction hypothesis: assume foo(n) > n
+    // induction step: foo(n+1) > n+1
+
+    if (a <= 0) { // induction begin
+        //assert a <= 0
+        //assert foo(a) == 1 // first rule of foo()
+        //assert foo(a) > a
+    } else { // induction step a > 0
+        //assert a > 0
+        //assert foo(a) == foo(a-5) + 7 // second rule of foo()
+        // assume false
+        lemma(a-15) // By I.H.
+        //assert foo(a-5) > a-5
+        //assert foo(a-5) + 7 > a
+        //assert foo(a) > a
+    }
+}

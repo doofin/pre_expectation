@@ -1,5 +1,6 @@
-package precondition
+package precondition.syntax
 
+import precondition._
 import com.doofin.stdScala.pp
 import precondition.syntax.dslAST._
 import cats.data._
@@ -7,7 +8,7 @@ import cats.implicits._
 import cats.free.Free._
 import cats.free.Free
 import cats.{Id, ~>}
-import precondition.compilers.{compileSyntax2Smt, impureCompilerId}
+import compilers._
 import precondition.syntax.dslAST
 
 //import cuttingedge.progAnalysis.ast.Expr.Var
@@ -18,30 +19,55 @@ object dslTest {
 //  type Epi  = (St, St) => Float
 
   def testDsl = {
-    val compilerId = impureCompilerId
-    val rImpure = program.foldMap(compilerId)
+    // val compilerId = compilerToStr
+    val compilerId = compilerToHvl
+    val r_notused = sgdProgram.foldMap(compilerId)
 //    println(rImpure)
     pp(compilerId.kvs.toList.sortBy(_._1))
 
-    val smtStmtCp = compileSyntax2Smt
-    program.foldMap(smtStmtCp)
-    pp(smtStmtCp.stmtSmtListGlob)
+    // val smtCompiler = compileToSmt
+    // program.foldMap(smtCompiler)
+    // pp(smtCompiler.stmtSmtListGlob)
+
 //    val rSt = program.foldMap(pureCompilerSt)
 //    println(rSt.run(Map("" -> "")).value)
   }
 
+  def hwalkProgram = {
+    val invar = ""
+    val k = Var("k")
+    val i = Var("i")
+    val pos = Var("pos")
+    val ei = Var("e(i)")
+    for {
+      _ <- varAssign(k, LitNum(1))
+      _ <- while__(true__, invar) {
+        for {
+          _ <- if_(
+            BinOpBool(i, "!=", LitNum(0)),
+            for {
+              _ <- varAssign(pos, BinOpVal(pos, "+", ei))
+            } yield (),
+            skip
+          )
+          _ <- varAssign(k, BinOpVal(k, "+", LitNum(1)))
+        } yield ()
+      }
+      _ <- skip
+    } yield {}
+  }
   val annos = "[t<1>!=t<2>]*inf +...+ 2L/n (sum(j:0 to T-1) a(j))"
 
-  def program: DslStore[dslAST.Var] = {
+  def sgdProgram: DslStore[dslAST.Var] = {
     for {
       w <- newVar("w")
-      _ <- updateVar(w, 2)
+      _ <- varAssign(w, LitNum(1))
       t <- newVar("t")
       _ <- while__(true__, annos) {
         for {
           s <- newVar("s")
-          _ <- updateVar(s, 2)
-          _ <- updateVar(w, w)
+          _ <- varAssign(s, LitNum(1))
+          _ <- varAssign(w, w)
         } yield s
       }
       _ <- skip

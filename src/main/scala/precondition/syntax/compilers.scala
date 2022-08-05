@@ -1,6 +1,8 @@
-package precondition
+package precondition.syntax
 
 import cats.{Id, ~>}
+import cats.data.State
+
 import precondition.syntax.dslAST._
 import precondition.sgdExampleTup._
 
@@ -14,7 +16,7 @@ object compilers {
    * natural transformation between type containers. need two lang,dsl->ast, can
    * also translate into tree
    */
-  def compileSyntax2Smt =
+  def compileToSmt =
     new (DslStoreA ~> Id) {
       val kvs = mutable.Map.empty[Int, String]
       //      tr : current node to insert
@@ -38,14 +40,12 @@ object compilers {
         }
 
         fa match {
-          case UpdateVar(v, value) =>
+          case VarAssign(v, value) =>
             println("isAccum", isAccum, stmtSmtListAccu)
             if (isAccum) {
-              stmtSmtListAccu =
-                stmtSmtListAccu.append(Assig(null, null, null, null))
+              stmtSmtListAccu = stmtSmtListAccu.append(Assig(null, null, null, null))
             } else
-              stmtSmtListGlob =
-                stmtSmtListGlob.append(Assig(null, null, null, null))
+              stmtSmtListGlob = stmtSmtListGlob.append(Assig(null, null, null, null))
 
             ()
           case NewVar(name) => Var(name)
@@ -58,7 +58,7 @@ object compilers {
             val r = bd.foldMap(this)
             isAccum = false
             stmtSmtListGlob = stmtSmtListGlob.append(
-              WhileSmtTup(???,???, stmtSmtListAccu)
+              WhileSmtTup(???, ???, stmtSmtListAccu)
             )
             println("While end")
             //            While(cond, annotation, bd.step)
@@ -71,11 +71,11 @@ object compilers {
       }
     }
 
-  /**
+  /** read values after invoke
    * natural transformation between type containers. need two lang,dsl->ast, can
    * also translate into tree
    */
-  def impureCompilerId =
+  def compilerToStr =
     new (DslStoreA ~> Id) {
       //      val kvs                     = mutable.Map.empty[String, Any]
       val kvs = mutable.Map.empty[Int, String]
@@ -86,13 +86,13 @@ object compilers {
 
         println(s"fa : ${fa}")
         currCtx match {
-          case Some(value) => kvs.put(ln, s"($value)  ${fa.toString}")
-          case None        => kvs.put(ln, fa.toString)
+          case Some(str) => kvs.put(ln, s"($str)  ${fa.toString}")
+          case None      => kvs.put(ln, fa.toString)
         }
 
         ln += 1
         fa match {
-          case UpdateVar(v, value) =>
+          case VarAssign(v, value) =>
             ()
           case NewVar(name) => Var(name)
           case While(cond, annotation, body) =>
@@ -101,7 +101,6 @@ object compilers {
             //            use some state there
             val r = body.foldMap(this)
             println("While end")
-            //            While(cond, annotation, bd.step)
             currCtx = None
             r
           case True => true
@@ -111,12 +110,60 @@ object compilers {
       }
     }
 
-  import cats.data.State
+  def dsl2hvl[A](dStmt: DslStoreA[A]) = {
+    dStmt match {
+      case VarAssign(v, value) => s"${v.nm}1=$value;${v.nm}2=$value"
+      // case If(cond, s1, s2)              =>
+      // case NewVar(name)                  =>
+      // case True                          =>
+      // case While(cond, annotation, body) =>
+      // case Skip                          =>
+      case _ => ""
+    }
+  }
+
+  def compilerToHvl =
+    new (DslStoreA ~> Id) {
+      //      val kvs                     = mutable.Map.empty[String, Any]
+      val kvs = mutable.Map.empty[Int, String]
+      //      tr : current node to insert
+      var currCtx: Option[String] = None
+      var lineNum: Int = 0
+      override def apply[A](fa: DslStoreA[A]): Id[A] = {
+        lineNum += 1
+        val dslStmt = fa
+
+        val dslStr = dsl2hvl(dslStmt)
+        currCtx match {
+          case Some(str) => kvs.put(lineNum, s"($str)  ${dslStr}")
+          case None      => kvs.put(lineNum, dslStr)
+        }
+
+        dslStmt match {
+          case VarAssign(v, value) =>
+            ()
+          case NewVar(name)                  => Var(name)
+          case While(cond, annotation, body) =>
+            // println("While start")
+            currCtx = Some(annotation)
+            //            use some state there
+            val r = body.foldMap(this)
+            // println("While end")
+            //            While(cond, annotation, bd.step)
+            currCtx = None
+            r
+          case True             => true
+          case Skip             => ()
+          case If(cond, s1, s2) =>
+        }
+      }
+    }
+
   type StState[A] = State[Map[String, Any], A]
   val pureCompilerSt: DslStoreA ~> StState = new (DslStoreA ~> StState) {
     override def apply[A](fa: DslStoreA[A]): StState[A] = {
       fa match {
-        case UpdateVar(v, value) =>
+        case VarAssign(v, value) =>
           val r: StState[Unit] = State.modify(_.updated("", v))
           r
         case NewVar(name) =>

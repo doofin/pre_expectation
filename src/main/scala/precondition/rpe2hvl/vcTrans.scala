@@ -13,27 +13,50 @@ object vcTrans {
   def ifTrans(e1: Expr, e2: Expr, s1: Stmts, s2: Stmts): Stmts = {
     s"""if (⊓) {
             down assume ?($e1=$e2); 
-            if (⊓) { down assume ?($e1 && $e2); $s1 } 
-            else { down assume ?($e1 & $e2); $s2 } 
-             } 
-        else {down assume ?(($e1=$e2)); down assume 0 } """
+          if (⊓) { 
+            down assume ?($e1 && $e2); 
+            $s1 
+            } 
+          else { 
+          down assume ?($e1 & $e2); 
+          $s2 
+          } 
+        } 
+        else {
+        down assume ?(($e1=$e2)); 
+        down assume 0 
+        } """
     Seq()
   }
 
-  def whileTrans(e1: Expr, e2: Expr, s1: Stmts): Stmts = {
-    s"""if (⊓) {
+  def whileTrans(e1: Expr, e2: Expr, s: Stmts, invar: Expectation): Stmts = {
+    s"""
+    down assert $invar;
+    down negate;
+    up compare $invar
+    if (⊓) {
             down assume ?($e1=$e2); 
-            if (⊓) { down assume ?($e1 && $e2); $s1 } 
-            else { down assume ?($e1 & $e2); $s1 } 
+            if (⊓) { 
+            down assume ?($e1 && $e2);
+            $s ;
+            down assert $invar;
+            down assume 0;
+            } 
+            else { 
+            down assume ?($e1 & $e2);
+            } 
              } 
-        else {down assume ?(($e1=$e2)); down assume 0 } """
+    else {
+        down assume ?(($e1=$e2)); 
+        down assume 0 ;
+        } """
     Seq()
   }
   def test = {
     val (e1w, e2w) = ("", "")
     val (e1if, e2if) = ("", "")
     val (post, bound) = ("", "")
-    upperB(whileTrans(e1w, e2w, ifTrans(e1if, e2if, Seq(), Seq())), post, bound)
+    // upperB(whileTrans(e1w, e2w, ifTrans(e1if, e2if, Seq(), Seq())), post, bound)
   }
 }
 
