@@ -1,0 +1,52 @@
+
+
+
+// Example: Euclid's algorithm for computing the greatest common divisor?
+// read more on https://en.wikipedia.org/wiki/Euclidean_algorithm
+// How should we specify that the code below computes the gcd? 
+
+function gcd(x: Int, y: Int): Int
+    requires x > 0 && y >= 0
+{
+    (y == 0) ? y : gcd(y, x % y)
+}
+
+// TODO: needs justification!
+method lemma_gcd_left(x: Int, y: Int)
+    requires x > 0 && y > 0 
+    ensures gcd(x + y, y) == gcd(x, y)
+
+// TODO: needs justification!
+method lemma_gcd_right(x: Int, y: Int)
+    requires x > 0 && y > 0 
+    ensures gcd(x, y) == gcd(x, y + x)
+
+method main()
+{
+    var a: Int
+    var b: Int 
+    var n: Int
+    var m: Int
+
+    assume n > 0 && m > 0
+
+    a := n
+    b := m
+    while (a != b) 
+        invariant a > 0 && b > 0
+        invariant gcd(a,b) == gcd(n,m) 
+    {
+        if (a > b) {
+            // gcd(a,b) == gcd(n,m)
+            a := a - b
+            // gcd(a + b,b) == gcd(n,m)
+            lemma_gcd_left(a, b)
+        } else {
+            // gcd(a,b) == gcd(n,m)
+            b := b - a
+            // gcd(a,b + a) == gcd(n,m)
+            lemma_gcd_right(a, b)
+        }
+        
+    }
+}
