@@ -1,15 +1,21 @@
-// down en
-
-proc forty_two(x: Uint) -> (y: Uint)
+proc procDown(x: Uint) -> (y: Uint)
     down requires x
-    down ensures y
-{
+    down ensures y{
     
     y = x + 1; // unsat
 // x <= x+1
     
 }
 
+// x <= x+1
+proc lem1(x: Uint) -> ()
+    down requires x
+    down ensures x+1
+
+
+proc lem2(x: Uint) -> (y:Uint)
+    down requires x
+    down ensures x+1
 
 proc procUp(x: Uint) -> (y: Uint)
     up requires x
@@ -17,4 +23,19 @@ proc procUp(x: Uint) -> (y: Uint)
 {
     // x>=x-1
     y = x - 1; // unsat
+}
+
+
+
+
+
+// to prove a<=a+2 ,use lemma that a<=a+1
+proc main(a:Uint)->()
+    down requires a
+    down ensures a+2
+{
+    //var c:Uint;
+    //c=lem2(a); 
+    
+    //lem1(a); //err
 }
