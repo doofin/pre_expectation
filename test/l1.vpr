@@ -1,0 +1,40 @@
+method max1(x:Int,y:Int) returns (r:Int)
+ensures r>=x
+ensures r>=y
+{
+    var z:Int
+//     if(x>=y) {
+//         r:=x*x + y*y
+//         } else {
+// r:=x*x + y*y
+//             }
+    r:=x*x + y*y
+    // assert r<0
+}
+
+
+method maxSum(x:Int,y:Int) returns (sum:Int,max:Int)
+ensures sum==x+y 
+ensures max>=x
+ensures max>=y
+
+method maxSumInv(sum:Int,max:Int ) returns (x:Int,y:Int)
+requires sum % 2 == 0
+ensures sum==x+y 
+ensures max>=x
+ensures max>=y
+// x=1,y=sum-x 
+// max>=x,max>sum-x
+// x,y sum/2
+{
+    x:=sum/2
+    y:=sum/2
+    assume false 
+}
+
+method client(){
+    var y:Int;
+//  y:=maxSum(1723,42)
+}
+
+// r=y+z = y+3*x = 2*x +3*x

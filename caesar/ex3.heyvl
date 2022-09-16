@@ -8,6 +8,7 @@ proc procDown(x: Uint) -> (y: Uint)
 }
 
 // x <= x+1
+
 proc lem1(x: Uint) -> ()
     down requires x
     down ensures x+1
