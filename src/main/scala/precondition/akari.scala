@@ -1,6 +1,26 @@
 package precondition
 import z3api.z3Utils
 // import com.doofin.stdScala._
+/* # akrai game:
+bulbs : list of (int,int) for row,col. how to represent a list?
+
+1.all non-wall tiles are lit:
+for all coor (i,j),bulb (a,b), a==i -> no wall between a,i false!
+for all empty tile,exists bulb in same row/col that no wall between tile and lamp: for t in tile ,or(not (wall map (lamp map (l=> l.x<w.x<t.x))))c
+
+
+2.Two lightbulbs are not allowed to shine light on each other.:
+  if two bulb (a,b) and (c,d), a==c -> wall between a,c
+
+3.how many lightbulbs must be placed in the adjacent empty tiles:
+forall wall(i,j,n),the coor (i+-1,j+-1) contains n bulbs
+
+
+val lmp=list(int,int)
+ for w in walls
+if(lmp.x=w.x) then all(blocks b between lmp and w must be spaces)
+
+between any two wall in same row must be 2 lamp */
 object akari {
   import precondition.z3api.z3Utils._ // scala bug? can't move this outside
   private lazy val ctx = z3Utils.newZ3ctx()
