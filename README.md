@@ -1,6 +1,8 @@
 # pre_expectation
 
-impl and demo for A Pre-Expectation Calculus for Probabilistic Sensitivity
+An embedded Domain Specific Language (eDSL) in Scala for
+probabilistic programs, supporting assertions,assumption and loop
+invariants for paper "A Pre-Expectation Calculus for Probabilistic Sensitivity"
 
 # requirements
 
