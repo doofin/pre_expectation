@@ -4,6 +4,8 @@ An embedded Domain Specific Language (eDSL) in Scala for
 probabilistic programs, supporting assertions,assumption and loop
 invariants for paper "A Pre-Expectation Calculus for Probabilistic Sensitivity"
 
+Example eDsl program : https://github.com/doofin/pre_expectation/blob/master/src/main/scala/precondition/syntax/dslTest.scala
+
 # requirements
 
 setup z3:
